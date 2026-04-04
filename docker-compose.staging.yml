@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: newton-postgres-staging
+    environment:
+      POSTGRES_DB: newton_staging
+      POSTGRES_USER: newton_user
+      POSTGRES_PASSWORD: staging_password_change_me
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+    networks:
+      - newton-network-staging
+
+  redis:
+    image: redis:7-alpine
+    container_name: newton-redis-staging
+    ports:
+      - "6381:6379"
+    networks:
+      - newton-network-staging
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: newton-backend-staging
+    env_file:
+      - .env.staging
+    environment:
+      - DATABASE_URL=postgresql://newton_user:staging_password_change_me@postgres:5432/newton_staging?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=staging
+      - STAGING_DOMAIN=${STAGING_DOMAIN}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - newton-network-staging
+
+  student-miniapp:
+    build:
+      context: ./apps/student-miniapp
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://${STAGING_DOMAIN}/api
+        - NODE_ENV=production
+    container_name: newton-student-tma-staging
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://${STAGING_DOMAIN}/api
+    networks:
+      - newton-network-staging
+
+  admin-miniapp:
+    build:
+      context: ./apps/admin-miniapp
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://${STAGING_DOMAIN}/api
+        - NODE_ENV=production
+    container_name: newton-admin-panel-staging
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://${STAGING_DOMAIN}/api
+    networks:
+      - newton-network-staging
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: newton-nginx-staging
+    ports:
+      - "8081:80"
+      - "443:443"
+    volumes:
+      - ./nginx/staging.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - student-miniapp
+      - admin-miniapp
+    networks:
+      - newton-network-staging
+
+networks:
+  newton-network-staging:
+    driver: bridge
+
+volumes:
+  postgres_data_staging:

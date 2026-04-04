@@ -1,0 +1,340 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  telegram_id   String   @unique
+  phone         String?
+  first_name    String
+  last_name     String?
+  language_code String   @default("ru") // "ru" or "uz"
+  grade         String?
+  direction_id  String?
+  points_balance Int     @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  sessions TestSession[]
+  parent   ParentContact?
+  leads    Lead[]
+  redemptions Redemption[]
+  point_history PointHistory[]
+
+  direction Direction? @relation(fields: [direction_id], references: [id], onDelete: SetNull)
+
+  @@map("users")
+}
+
+model ParentContact {
+  id           String @id @default(uuid())
+  user_id      String @unique
+  father_name  String?
+  father_phone String?
+  mother_name  String?
+  mother_phone String?
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("parent_contacts")
+}
+
+model Direction {
+  id   String @id @default(uuid())
+  name String @unique // e.g., "Президентские школы", "Математика"
+
+  users User[]
+
+  @@map("directions")
+}
+
+model Topic {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  questions TestQuestion[]
+
+  @@map("topics")
+}
+
+model Test {
+  id               String   @id @default(uuid())
+  title            String
+  description      String?
+  duration_minutes Int      @default(120) // Total test duration
+  is_active        Boolean  @default(true)
+  allow_retakes    Boolean  @default(false) // Retake policy
+  created_at       DateTime @default(now())
+
+  questions      TestQuestion[]
+  sessions       TestSession[]
+  scheduled_posts ScheduledPost[]
+
+  @@map("tests")
+}
+
+model TestQuestion {
+  id        String       @id @default(uuid())
+  test_id   String
+  topic_id  String
+  content   String
+  type      QuestionType @default(MCQ)
+  image_url String?
+  order_num Int          @default(0)
+
+  test  Test  @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topic_id], references: [id], onDelete: Restrict)
+
+  options TestOption[]
+  answers TestAnswer[]
+
+  @@map("test_questions")
+}
+
+enum QuestionType {
+  MCQ
+  NUMERIC
+  SHORT_TEXT
+}
+
+model TestOption {
+  id          String  @id @default(uuid())
+  question_id String
+  content     String
+  is_correct  Boolean @default(false)
+
+  question TestQuestion @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  answers TestAnswer[]
+
+  @@map("test_options")
+}
+
+// Enum for Session Status
+enum SessionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+  CHECKED
+}
+
+model TestSession {
+  id                     String        @id @default(uuid())
+  user_id                String
+  test_id                String
+  started_at             DateTime      @default(now())
+  expires_at             DateTime
+  status                 SessionStatus @default(IN_PROGRESS)
+  current_question_index Int           @default(0)
+  job_id                 String?       // Tracks BullMQ timer job ID
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  test Test @relation(fields: [test_id], references: [id], onDelete: Cascade)
+
+  answers TestAnswer[]
+  result  TestResult?
+
+  @@map("test_sessions")
+}
+
+model TestAnswer {
+  id                 String @id @default(uuid())
+  session_id         String
+  question_id        String
+  selected_option_id String
+
+  session         TestSession  @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  question        TestQuestion @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  selected_option TestOption   @relation(fields: [selected_option_id], references: [id], onDelete: Cascade)
+
+  @@unique([session_id, question_id]) // User can answer a question only once per session
+  @@map("test_answers")
+}
+
+model TestResult {
+  id               String   @id @default(uuid())
+  session_id       String   @unique
+  correct_count    Int
+  incorrect_count  Int
+  score_percentage Float
+  level            String   // e.g., "LOW", "MEDIUM", "HIGH"
+  skill_breakdown  Json     // { "Logic": { "strong": true, "percentage": 80 }, "Arithmetic": { "weak": true, "percentage": 30 } }
+  created_at       DateTime @default(now())
+
+  session        TestSession     @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  recommendation Recommendation?
+
+  @@map("test_results")
+}
+
+model Recommendation {
+  id             String   @id @default(uuid())
+  test_result_id String   @unique
+  summary_text   String
+  course_offered String?
+  created_at     DateTime @default(now())
+
+  test_result TestResult @relation(fields: [test_result_id], references: [id], onDelete: Cascade)
+
+  @@map("recommendations")
+}
+
+enum LeadStatus {
+  NEW
+  REGISTERED
+  STARTED_TEST
+  TEST_COMPLETED
+  WAITING_CONTACT
+  CONTACTED
+  INTERESTED
+  ENROLLED
+  PAID
+  REJECTED
+}
+
+enum AdminRole {
+  ADMIN
+}
+
+model AdminUser {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  telegram_id   String?   @unique // Telegram user ID for Mini App auth
+  password_hash String
+  name          String
+  role          AdminRole @default(ADMIN)
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+
+  managed_leads Lead[]
+
+  @@map("admin_users")
+}
+
+model Lead {
+  id               String     @id @default(uuid())
+  user_id          String
+  status           LeadStatus @default(NEW)
+  manager_id       String?
+  preferred_format String? // "ONLINE", "OFFLINE"
+  city             String?
+  branch           String?
+  manager_comment  String?
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+
+  user    User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  manager AdminUser? @relation(fields: [manager_id], references: [id], onDelete: SetNull)
+
+  history  LeadStatusHistory[]
+
+  @@map("leads")
+}
+
+model LeadStatusHistory {
+  id         String      @id @default(uuid())
+  lead_id    String
+  old_status LeadStatus?
+  new_status LeadStatus
+  changed_by String? // AdminUser ID or "SYSTEM"
+  created_at DateTime    @default(now())
+
+  lead Lead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@map("lead_status_history")
+}
+
+model Channel {
+  id          String  @id @default(uuid())
+  telegram_id String  @unique
+  name        String
+  is_active   Boolean @default(true)
+
+  scheduled_posts ScheduledPost[]
+
+  @@map("channels")
+}
+
+model ScheduledPost {
+  id           String   @id @default(uuid())
+  test_id      String
+  channel_id   String
+  publish_at   DateTime
+  message_tmpl String
+  language     String   @default("ru")
+  status       String   @default("PENDING") // PENDING, PUBLISHED, FAILED
+  error_log    String?
+  created_at   DateTime @default(now())
+
+  test    Test    @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channel_id], references: [id], onDelete: Cascade)
+
+  @@map("scheduled_posts")
+}
+
+model Reward {
+  id               String       @id @default(uuid())
+  title_ru         String
+  title_uz         String
+  description_ru   String?
+  description_uz   String?
+  point_cost       Int
+  stock_limits     Int?         // Null means unlimited
+  is_active        Boolean      @default(true)
+  type             RewardType   @default(DISCOUNT)
+  image_url        String?
+  created_at       DateTime     @default(now())
+
+  redemptions Redemption[]
+
+  @@map("rewards")
+}
+
+enum RewardType {
+  DISCOUNT
+  MATERIAL
+  CONSULTATION
+  TRIAL_LESSON
+}
+
+model Redemption {
+  id         String           @id @default(uuid())
+  user_id    String
+  reward_id  String
+  status     RedemptionStatus @default(PENDING)
+  created_at DateTime         @default(now())
+
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  reward Reward @relation(fields: [reward_id], references: [id], onDelete: Cascade)
+
+  @@map("redemptions")
+}
+
+enum RedemptionStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+model PointHistory {
+  id         String   @id @default(uuid())
+  user_id    String
+  amount     Int
+  reason     String   // e.g., "TEST_COMPLETED", "REWARD_REDEEMED"
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("point_history")
+}
+

@@ -1,0 +1,44 @@
+{
+    "registration": {
+        "welcome": "Добро пожаловать в Newton Academy! Выберите язык / Tilni tanlang:",
+        "ask_phone": "Iltimos, pastdagi tugmani bosib telefon raqamingizni yuboring 👇",
+        "btn_contact": "📱 Kontaktni yuborish",
+        "ask_name": "Ajoyib! Endi Ism va Familiyangizni yozing:",
+        "ask_grade": "Nechinchi sinfda o'qiysiz?",
+        "btn_grade_5": "5-sinf",
+        "btn_grade_6": "6-sinf",
+        "btn_grade_7": "7-sinf",
+        "btn_grade_8": "8-sinf",
+        "btn_grade_other": "Boshqa / Kattaroq",
+        "ask_direction": "Qaysi yo'nalishga qiziqasiz?",
+        "btn_direction_presidential": "Prezident maktablari",
+        "btn_direction_al_xorazmiy": "Al-Xorazmiy",
+        "btn_direction_math": "Matematika / Mantiq",
+        "ask_parent_name": "Biz bog'lanishimiz mumkin bo'lgan ota-onangizning (Ona/Ota) ismi nima?",
+        "ask_parent_phone": "Ota-onangizning telefon raqamini yuboring (Iltimos, +998... formatida):",
+        "btn_enter_number": "Raqamni kiritish",
+        "btn_skip": "O'tkazib yuborish",
+        "ask_format": "Sizga qaysi o'qish formati mos keladi?",
+        "btn_format_online": "Onlayn",
+        "btn_format_offline": "Toshkentda oflayn",
+        "finish_success": "✅ Registratsiya muvaffaqiyatli yakunlandi! Profilingiz tayyor.",
+        "finish_error": "Ma'lumotlarni saqlashda xatolik yuz berdi.",
+        "test_preparing": "Siz test havolasi orqali o'tdingiz. Savollarni tayyorlayapmiz..."
+    },
+    "test": {
+        "not_found": "Test topilmadi.",
+        "warning_timer": "Diqqat! Test {duration} ga mo'ljallangan. \"Testni boshlash\" tugmasini bosganingizdan so'ng taymer ishga tushadi.\n\nTayyormisiz?",
+        "btn_start_test": "🚀 Testni boshlash",
+        "btn_cancel_test": "❌ Keyinroq qaytish",
+        "timer_started": "Taymer ishga tushdi! Omad!\n\n⏳ Qolgan vaqt: {duration}",
+        "timer_error": "Xatolik yuz berdi yoki test allaqachon boshlangan.",
+        "cancel_msg": "Yaxshi, tayyor bo'lganingizda qaytasiz!",
+        "answer_saved": "Javob saqlandi. Keyingi savolga o'tilmoqda..."
+    },
+    "result": {
+        "summary": "📊 *Test natijalari: {testTitle}*\n\nUmumiy balingiz: *{score}%*\nTo'g'ri javoblar: {correct}\nXatolar: {incorrect}\n\n*Mavzular bo'yicha diagnostika:*\n{breakdown}\n\n{cta}",
+        "cta_high": "🔥 Ajoyib natija! Baza bilimlaringiz juda zo'r. Biz olimpiada va kirish imtihonlariga tayyorlovchi maxsus guruhlarga yozilishingizni maslahat beramiz. Menejer bilan bog'laning: @manager",
+        "cta_medium": "👍 Yaxshi natija! Ayrim mavzularda bo'shliqlar bor, ularni asosiy tayyorgarlik kurslarimizda oson yopish mumkin. Ariza qoldiring yoki menejerga yozing: @manager",
+        "cta_low": "💪 Xafa bo'lmang! To'g'ri tayyorgarlikni boshlash – bu yutuqning yarmi. Noldan boshlab bazani ko'tarish uchun yakka tartibdagi dastur ishlab chiqdik. Boshlash uchun bizga yozing: @manager"
+    }
+}

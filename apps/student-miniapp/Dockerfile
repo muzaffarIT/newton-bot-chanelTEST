@@ -28,7 +28,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 RUN mkdir -p ./public
 
-EXPOSE 3002
+EXPOSE 3000
 
-# Run the app
-CMD ["npm", "start", "--", "-p", "3002"]
+# Run the app using Railway's PORT env var
+CMD ["sh", "-c", "next start -p ${PORT:-3000}"]

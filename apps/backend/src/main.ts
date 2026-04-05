@@ -18,12 +18,11 @@ async function bootstrap() {
         transform: true,
     }));
 
-    // 2. CORS for admin panel
-    const adminOrigin = process.env.ADMIN_PANEL_URL || 'http://localhost:3001';
+    // 2. CORS for admin and student miniapps
     app.enableCors({
-        origin: [adminOrigin, 'http://localhost:3000'],
+        origin: true, // Reflects the request origin
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
         credentials: true,
     });
 

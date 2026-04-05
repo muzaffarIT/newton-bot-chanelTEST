@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    basePath: '/student',
+    // basePath is removed since we deploy on a dedicated domain
     trailingSlash: true,
     // output: 'export',
     images: {

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    basePath: '/admin',
+    // basePath is removed since we deploy on a dedicated domain
     trailingSlash: true,
     // Telegram Mini Apps run as SPA in an iframe
     // output: 'export',

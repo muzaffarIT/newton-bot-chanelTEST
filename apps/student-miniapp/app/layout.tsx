@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { TelegramProvider } from "@/components/TelegramProvider";
 import { I18nProvider } from "@/context/I18nContext";
-import { Outfit } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin", "cyrillic"], variable: "--font-outfit" });
+const outfit = Montserrat({ subsets: ["latin", "cyrillic"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
     title: "Newton Academy",

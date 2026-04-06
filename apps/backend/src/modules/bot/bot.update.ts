@@ -29,18 +29,38 @@ export class BotUpdate implements OnModuleInit {
 
     async onModuleInit() {
         const adminUrl = this.config.get<string>('ADMIN_MINI_APP_URL');
+        const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
+
+        // Set default menu button for ALL users to Student App
+        if (studentUrl) {
+            try {
+                await this.bot.telegram.setChatMenuButton({
+                    menuButton: {
+                        type: 'web_app',
+                        text: '🎓 Кабинет',
+                        web_app: { url: studentUrl },
+                    } as any,
+                });
+                this.logger.log(`✅ Default menu button set to Student APP`);
+            } catch (e) {
+                this.logger.warn(`⚠️ Could not set default menu button: ${e.message}`);
+            }
+        }
+
+        // Set specific menu button for Admin Owner
         if (adminUrl) {
             try {
                 await this.bot.telegram.setChatMenuButton({
+                    chatId: Number(this.OWNER_TELEGRAM_ID),
                     menuButton: {
                         type: 'web_app',
                         text: '⚙️ Admin Panel',
                         web_app: { url: adminUrl },
                     } as any,
                 });
-                this.logger.log(`✅ Admin menu button set: ${adminUrl}`);
+                this.logger.log(`✅ Admin menu button set for owner: ${this.OWNER_TELEGRAM_ID}`);
             } catch (e) {
-                this.logger.warn(`⚠️ Could not set menu button: ${e.message}`);
+                this.logger.warn(`⚠️ Could not set context menu button for owner: ${e.message}`);
             }
         }
 

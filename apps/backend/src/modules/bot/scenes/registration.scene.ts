@@ -21,12 +21,10 @@ export class RegistrationWizard {
     @WizardStep(1)
     async step1_Language(@Ctx() ctx: WizardContext) {
         this.logger.log(`Starting registration for ${ctx.from.id}`);
-
         await ctx.reply(await this.i18n.t('bot.registration.welcome', { lang: 'ru' }), { parse_mode: 'Markdown', ...Markup.keyboard([
                 ['🇷🇺 Русский', '🇺🇿 O\'zbekcha']
             ]).oneTime().resize()
          });
-
         ctx.wizard.next();
     }
 
@@ -38,19 +36,13 @@ export class RegistrationWizard {
         // @ts-ignore
         ctx.wizard.state['language'] = lang;
 
-        const text = await this.i18n.t('bot.registration.ask_phone', { lang });
-        const btnText = await this.i18n.t('bot.registration.btn_contact', { lang });
+        const text = isRu ? 'Пожалуйста, поделитесь своим номером телефона:' : 'Iltimos, telefon raqamingizni yuboring:';
+        const btnText = isRu ? '📱 Отправить контакт' : '📱 Kontaktni yuborish';
 
-        await ctx.reply(
-            text,
-            {
-                parse_mode: 'Markdown',
-                ...Markup.keyboard([
-                    Markup.button.contactRequest(btnText)
-                ]).oneTime().resize()
-            }
-        );
-
+        await ctx.reply(text, {
+            parse_mode: 'Markdown',
+            ...Markup.keyboard([Markup.button.contactRequest(btnText)]).oneTime().resize()
+        });
         ctx.wizard.next();
     }
 
@@ -71,17 +63,15 @@ export class RegistrationWizard {
         // @ts-ignore
         const lang = ctx.wizard.state['language'];
 
-        await ctx.reply(await this.i18n.t('bot.registration.ask_name', { lang }), { parse_mode: 'Markdown', ...Markup.removeKeyboard()
-         });
-
+        const text = lang === 'ru' ? 'Как вас зовут? (Введите ФИО)' : 'Ism-sharifingizni kiriting:';
+        await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.removeKeyboard() });
         ctx.wizard.next();
     }
 
     @WizardStep(4)
     @On('text')
-    async step4_Grade(@Ctx() ctx: WizardContext, @Message('text') name: string) {
-        // split strictly into first and last name
-        const parts = name.split(' ');
+    async step4_ParentPhone(@Ctx() ctx: WizardContext, @Message('text') text: string) {
+        const parts = text.split(' ');
         // @ts-ignore
         ctx.wizard.state['first_name'] = parts[0] || '';
         // @ts-ignore
@@ -89,22 +79,34 @@ export class RegistrationWizard {
 
         // @ts-ignore
         const lang = ctx.wizard.state['language'];
+        const msg = lang === 'ru' ? 'Напишите номер телефона ваших родителей (для связи):' : 'Ota-onangizning telefon raqamini kiriting:';
+        
+        await ctx.reply(msg, { parse_mode: 'Markdown' });
+        ctx.wizard.next();
+    }
 
-        await ctx.reply(await this.i18n.t('bot.registration.ask_grade', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                [Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_5', { lang }), 'grade_5'),
-                Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_6', { lang }), 'grade_6')],
-                [Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_7', { lang }), 'grade_7'),
-                Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_8', { lang }), 'grade_8')],
-                [Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_other', { lang }), 'grade_other')]
+    @WizardStep(5)
+    @On('text')
+    async step5_Grade(@Ctx() ctx: WizardContext, @Message('text') parentPhone: string) {
+        // @ts-ignore
+        ctx.wizard.state['parent_phone'] = parentPhone;
+        // @ts-ignore
+        const lang = ctx.wizard.state['language'];
+
+        const msg = lang === 'ru' ? 'В каком вы классе?' : 'Nechanchi sinfda o\'qiysiz?';
+        await ctx.reply(msg, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                [Markup.button.callback('5 класс', 'grade_5'), Markup.button.callback('6 класс', 'grade_6')],
+                [Markup.button.callback('7 класс', 'grade_7'), Markup.button.callback('8 класс', 'grade_8')],
+                [Markup.button.callback('9 класс', 'grade_9'), Markup.button.callback('Другое', 'grade_other')]
             ])
          });
 
         ctx.wizard.next();
     }
 
-    @WizardStep(5)
+    @WizardStep(6)
     @On('callback_query')
-    async step5_Direction(@Ctx() ctx: WizardContext) {
+    async step6_TargetSchool(@Ctx() ctx: WizardContext) {
         // @ts-ignore
         const grade = ctx.callbackQuery.data.replace('grade_', '');
         // @ts-ignore
@@ -114,34 +116,14 @@ export class RegistrationWizard {
 
         await ctx.answerCbQuery();
 
-        const directions = await this.prisma.direction.findMany();
-        const buttons = directions.map(d => [Markup.button.callback(d.name, `dir_${d.id}`)]);
-
-        // If no directions in DB, give a fallback skip button
-        if (buttons.length === 0) {
-            buttons.push([Markup.button.callback(await this.i18n.t('bot.registration.btn_skip', { lang }), 'dir_skip')]);
-        }
-
-        await ctx.editMessageText(await this.i18n.t('bot.registration.ask_direction', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons)
-         });
-
-        ctx.wizard.next();
-    }
-
-    @WizardStep(6)
-    @On('callback_query')
-    async step6_ParentName(@Ctx() ctx: WizardContext) {
-        // @ts-ignore
-        const directionData = ctx.callbackQuery.data;
-        // @ts-ignore
-        ctx.wizard.state['direction_id'] = directionData === 'dir_skip' ? undefined : directionData.replace('dir_', '');
-        // @ts-ignore
-        const lang = ctx.wizard.state['language'];
-
-        await ctx.answerCbQuery();
-
-        await ctx.editMessageText(await this.i18n.t('bot.registration.ask_parent_name', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                [Markup.button.callback(await this.i18n.t('bot.registration.btn_skip', { lang }), 'parent_skip')]
+        const msg = lang === 'ru' ? 'Какая ваша целевая школа?' : 'Qaysi maktabga kirishni xohlaysiz?';
+        await ctx.editMessageText(msg, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                [Markup.button.callback('Президентская школа', 'school_President')],
+                [Markup.button.callback('Мирзо Улугбек', 'school_Ulugbek')],
+                [Markup.button.callback('Аль-Хоразмий', 'school_Khorazmiy')],
+                [Markup.button.callback('Аль-Беруни', 'school_Beruni')],
+                [Markup.button.callback('Ибн Сино', 'school_Sino')],
+                [Markup.button.callback('Другое', 'school_Other')]
             ])
          });
 
@@ -149,41 +131,16 @@ export class RegistrationWizard {
     }
 
     @WizardStep(7)
-    @On(['text', 'callback_query'])
-    async step7_ParentPhone(@Ctx() ctx: WizardContext) {
+    @On('callback_query')
+    async step7_Finish(@Ctx() ctx: WizardContext) {
+        // @ts-ignore
+        const targetSchoolRaw = ctx.callbackQuery.data.replace('school_', '');
+        // @ts-ignore
+        ctx.wizard.state['target_school'] = targetSchoolRaw;
         // @ts-ignore
         const lang = ctx.wizard.state['language'];
 
-        // @ts-ignore
-        if (ctx.callbackQuery && ctx.callbackQuery.data === 'parent_skip') {
-            await ctx.answerCbQuery();
-        } else {
-            // @ts-ignore
-            ctx.wizard.state['parent_name'] = ctx.message?.text;
-        }
-
-        const skipBtn = Markup.button.callback(await this.i18n.t('bot.registration.btn_skip', { lang }), 'parent_skip');
-
-        // Send new message because we might have received text
-        await ctx.reply(await this.i18n.t('bot.registration.ask_parent_phone', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[skipBtn]])
-         });
-
-        ctx.wizard.next();
-    }
-
-    @WizardStep(8)
-    @On(['text', 'callback_query'])
-    async step8_Finish(@Ctx() ctx: WizardContext) {
-        // @ts-ignore
-        const lang = ctx.wizard.state['language'];
-
-        // @ts-ignore
-        if (ctx.callbackQuery && ctx.callbackQuery.data === 'parent_skip') {
-            await ctx.answerCbQuery();
-        } else {
-            // @ts-ignore
-            ctx.wizard.state['parent_phone'] = ctx.message?.text;
-        }
+        await ctx.answerCbQuery();
 
         try {
             return this.finishRegistration(ctx, lang);
@@ -198,47 +155,38 @@ export class RegistrationWizard {
             const state = ctx.wizard.state;
 
             const existingUser = await this.usersService.findByTelegramId(ctx.from.id.toString());
+            const dto = {
+                first_name: state['first_name'],
+                last_name: state['last_name'],
+                phone: state['phone'],
+                language_code: lang,
+                grade: state['grade'],
+                parent_phone: state['parent_phone'],
+                target_school: state['target_school']
+            };
+
             if (!existingUser) {
                 await this.usersService.createUser({
                     telegram_id: ctx.from.id.toString(),
-                    first_name: state['first_name'],
-                    last_name: state['last_name'],
-                    phone: state['phone'],
-                    language_code: lang,
-                    grade: state['grade'],
-                    direction_id: state['direction_id'],
-                    father_name: state['parent_name'],
-                    father_phone: state['parent_phone']
+                    ...dto
                 });
             } else {
-                await this.usersService.updateUser(ctx.from.id.toString(), {
-                    first_name: state['first_name'],
-                    last_name: state['last_name'],
-                    phone: state['phone'],
-                    language_code: lang,
-                    grade: state['grade'],
-                    direction_id: state['direction_id']
-                });
+                await this.usersService.updateUser(ctx.from.id.toString(), dto);
             }
 
-            await ctx.reply(await this.i18n.t('bot.registration.finish_success', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+            const successMsg = lang === 'ru' ? '✅ Вы успешно зарегистрированы!' : '✅ Muvaffaqiyatli ro\'yxatdan o\'tdingiz!';
+            await ctx.editMessageText(successMsg, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
                     [Markup.button.webApp(
-                        lang === 'ru' ? '🎓 Открыть кабинет' : '🎓 Kabinetni ochish',
+                        lang === 'ru' ? '🎓 Открыть платформу' : '🎓 Platformani ochish',
                         process.env.STUDENT_MINI_APP_URL || ''
                     )]
                 ])
              });
 
-            // Check if user came via deep link
-            if (state['test_id']) {
-                // ... logic to maybe still enter bot scene or just rely on TMA
-                await ctx.scene.leave();
-            } else {
-                await ctx.scene.leave();
-            }
+            await ctx.scene.leave();
         } catch (e) {
             this.logger.error('Error during registration', e);
-            await ctx.reply(await this.i18n.t('bot.registration.finish_error', { lang }));
+            await ctx.reply('Произошла ошибка при регистрации. Пожалуйста, попробуйте позже.');
             await ctx.scene.leave();
         }
     }

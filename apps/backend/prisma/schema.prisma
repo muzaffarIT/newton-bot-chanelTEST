@@ -18,6 +18,8 @@ model User {
   last_name     String?
   language_code String   @default("ru") // "ru" or "uz"
   grade         String?
+  parent_phone  String?
+  target_school String?
   direction_id  String?
   points_balance Int     @default(0)
   created_at    DateTime @default(now())

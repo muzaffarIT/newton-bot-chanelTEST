@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { api } from '@/lib/api' // Using direct api for now or implementing fetchRewards
+import { api, fetchRewards, redeemReward, fetchProfile } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
 import { Gift, Star, ChevronRight, ShoppingCart } from 'lucide-react'
 import { useState } from 'react'
@@ -11,31 +11,22 @@ export default function ShopPage() {
     const { t } = useI18n()
     const { data: rewards, isLoading } = useQuery({ 
         queryKey: ['rewards'], 
-        queryFn: async () => {
-            const { data } = await api.get('/api/student/store/rewards')
-            return data
-        } 
+        queryFn: fetchRewards
     })
     
     const { data: profile, refetch: refetchProfile } = useQuery({
         queryKey: ['profile'],
-        queryFn: async () => {
-            const { data } = await api.get('/api/student/profile')
-            return data
-        }
+        queryFn: fetchProfile
     })
 
     const redeemMutation = useMutation({
-        mutationFn: async (rewardId: string) => {
-            const { data } = await api.post(`/api/student/store/redeem/${rewardId}`)
-            return data
-        },
+        mutationFn: redeemReward,
         onSuccess: () => {
             alert(t('shop.success'))
             refetchProfile()
         },
         onError: (err: any) => {
-            alert(err.response?.data?.message || 'Error')
+            alert(err.response?.data?.message || 'Error executing purchase')
         }
     })
 

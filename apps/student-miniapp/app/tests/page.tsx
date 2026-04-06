@@ -2,22 +2,35 @@
 
 import { BottomNav } from '@/components/BottomNav'
 import { BookOpen, Clock, ChevronRight, Search, Play } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { fetchAvailableTests } from '@/lib/api'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { fetchAvailableTests, startSession } from '@/lib/api'
 import { useI18n } from '@/context/I18nContext'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 export default function TestsPage() {
     const { t } = useI18n()
+    const router = useRouter()
     const [search, setSearch] = useState('')
+    
     const { data: tests, isLoading } = useQuery({ queryKey: ['available-tests'], queryFn: fetchAvailableTests })
+
+    const startMutation = useMutation({
+        mutationFn: startSession,
+        onSuccess: (data, testId) => {
+            router.push(`/tests/${testId}/play`)
+        },
+        onError: (err: any) => {
+            alert(err.response?.data?.message || 'Ошибка запуска теста. Возможно, вы уже израсходовали попытки.')
+        }
+    })
 
     const filteredTests = tests?.filter((test: any) => 
         test.title.toLowerCase().includes(search.toLowerCase()) ||
         test.description?.toLowerCase().includes(search.toLowerCase())
     )
+
     return (
         <main className="pb-28 pt-8 px-5 page-fade-in relative min-h-screen">
             {/* Background Decor */}
@@ -67,7 +80,11 @@ export default function TestsPage() {
                 {isLoading ? (
                     [1, 2, 3].map(i => <div key={i} className="h-40 glass-card rounded-[24px] animate-pulse" />)
                 ) : filteredTests?.map((test: any) => (
-                    <Link key={test.id} href={`/tests/${test.id}/play`} className="block group">
+                    <div 
+                        key={test.id} 
+                        onClick={() => startMutation.mutate(test.id)} 
+                        className={`block group cursor-pointer ${startMutation.isPending && startMutation.variables === test.id ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
                         <div className="glass-card rounded-[28px] flex flex-col gap-5 p-6 border border-white/10 group-hover:border-blue-500/30 group-hover:bg-[#1a1a2e]/60 transition-all group-active:scale-[0.98] relative overflow-hidden">
                             {/* Card Glow */}
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
@@ -97,11 +114,11 @@ export default function TestsPage() {
                                     {test._count?.questions || 0} {t('tests.questions') || 'вопросов'}
                                 </span>
                                 <div className="flex items-center gap-2 text-blue-400 text-sm font-bold bg-blue-500/10 px-4 py-2 rounded-xl group-hover:bg-blue-500/20 transition-colors">
-                                    {t('tests.start') || 'Перейти к тесту'} <ChevronRight size={16} />
+                                    {t('tests.start') || 'Перейти к тесту'} {startMutation.isPending && startMutation.variables === test.id ? '...' : <ChevronRight size={16} />}
                                 </div>
                             </div>
                         </div>
-                    </Link>
+                    </div>
                 ))}
                 {!isLoading && filteredTests?.length === 0 && (
                     <div className="glass-card text-center py-20 rounded-[32px] border border-dashed border-white/10">

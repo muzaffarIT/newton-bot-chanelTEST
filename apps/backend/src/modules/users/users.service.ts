@@ -12,12 +12,8 @@ export interface CreateUserDto {
     language_code: string;
     grade?: string;
     direction_id?: string;
-
-    // Exntended for Parent Contact
-    father_name?: string;
-    father_phone?: string;
-    mother_name?: string;
-    mother_phone?: string;
+    parent_phone?: string;
+    target_school?: string;
 }
 
 @Injectable()
@@ -50,14 +46,8 @@ export class UsersService {
                 language_code: data.language_code,
                 grade: data.grade,
                 direction_id: data.direction_id,
-                parent: (data.father_name || data.mother_phone) ? {
-                    create: {
-                        father_name: data.father_name,
-                        father_phone: data.father_phone,
-                        mother_name: data.mother_name,
-                        mother_phone: data.mother_phone,
-                    }
-                } : undefined
+                parent_phone: data.parent_phone,
+                target_school: data.target_school
             },
             include: {
                 parent: true
@@ -69,13 +59,17 @@ export class UsersService {
     }
 
     async updateUser(telegram_id: string, data: Partial<CreateUserDto>): Promise<User> {
-        // In a real scenario, map data to parent sub-object if parent changing
         return this.prisma.user.update({
             where: { telegram_id },
             data: {
                 first_name: data.first_name,
                 last_name: data.last_name,
-                language_code: data.language_code
+                language_code: data.language_code,
+                phone: data.phone,
+                grade: data.grade,
+                parent_phone: data.parent_phone,
+                target_school: data.target_school,
+                direction_id: data.direction_id
             },
         });
     }

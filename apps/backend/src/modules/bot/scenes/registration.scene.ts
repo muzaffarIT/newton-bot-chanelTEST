@@ -22,12 +22,10 @@ export class RegistrationWizard {
     async step1_Language(@Ctx() ctx: WizardContext) {
         this.logger.log(`Starting registration for ${ctx.from.id}`);
 
-        await ctx.reply(
-            await this.i18n.t('bot.registration.welcome', { lang: 'ru' }),
-            Markup.keyboard([
+        await ctx.reply(await this.i18n.t('bot.registration.welcome', { lang: 'ru' }), { parse_mode: 'Markdown', ...Markup.keyboard([
                 ['🇷🇺 Русский', '🇺🇿 O\'zbekcha']
             ]).oneTime().resize()
-        );
+         });
 
         ctx.wizard.next();
     }
@@ -45,9 +43,12 @@ export class RegistrationWizard {
 
         await ctx.reply(
             text,
-            Markup.keyboard([
-                Markup.button.contactRequest(btnText)
-            ]).oneTime().resize()
+            {
+                parse_mode: 'Markdown',
+                ...Markup.keyboard([
+                    Markup.button.contactRequest(btnText)
+                ]).oneTime().resize()
+            }
         );
 
         ctx.wizard.next();
@@ -70,10 +71,8 @@ export class RegistrationWizard {
         // @ts-ignore
         const lang = ctx.wizard.state['language'];
 
-        await ctx.reply(
-            await this.i18n.t('bot.registration.ask_name', { lang }),
-            Markup.removeKeyboard()
-        );
+        await ctx.reply(await this.i18n.t('bot.registration.ask_name', { lang }), { parse_mode: 'Markdown', ...Markup.removeKeyboard()
+         });
 
         ctx.wizard.next();
     }
@@ -91,16 +90,14 @@ export class RegistrationWizard {
         // @ts-ignore
         const lang = ctx.wizard.state['language'];
 
-        await ctx.reply(
-            await this.i18n.t('bot.registration.ask_grade', { lang }),
-            Markup.inlineKeyboard([
+        await ctx.reply(await this.i18n.t('bot.registration.ask_grade', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
                 [Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_5', { lang }), 'grade_5'),
                 Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_6', { lang }), 'grade_6')],
                 [Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_7', { lang }), 'grade_7'),
                 Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_8', { lang }), 'grade_8')],
                 [Markup.button.callback(await this.i18n.t('bot.registration.btn_grade_other', { lang }), 'grade_other')]
             ])
-        );
+         });
 
         ctx.wizard.next();
     }
@@ -125,10 +122,8 @@ export class RegistrationWizard {
             buttons.push([Markup.button.callback(await this.i18n.t('bot.registration.btn_skip', { lang }), 'dir_skip')]);
         }
 
-        await ctx.editMessageText(
-            await this.i18n.t('bot.registration.ask_direction', { lang }),
-            Markup.inlineKeyboard(buttons)
-        );
+        await ctx.editMessageText(await this.i18n.t('bot.registration.ask_direction', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons)
+         });
 
         ctx.wizard.next();
     }
@@ -145,12 +140,10 @@ export class RegistrationWizard {
 
         await ctx.answerCbQuery();
 
-        await ctx.editMessageText(
-            await this.i18n.t('bot.registration.ask_parent_name', { lang }),
-            Markup.inlineKeyboard([
+        await ctx.editMessageText(await this.i18n.t('bot.registration.ask_parent_name', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
                 [Markup.button.callback(await this.i18n.t('bot.registration.btn_skip', { lang }), 'parent_skip')]
             ])
-        );
+         });
 
         ctx.wizard.next();
     }
@@ -172,10 +165,8 @@ export class RegistrationWizard {
         const skipBtn = Markup.button.callback(await this.i18n.t('bot.registration.btn_skip', { lang }), 'parent_skip');
 
         // Send new message because we might have received text
-        await ctx.reply(
-            await this.i18n.t('bot.registration.ask_parent_phone', { lang }),
-            Markup.inlineKeyboard([[skipBtn]])
-        );
+        await ctx.reply(await this.i18n.t('bot.registration.ask_parent_phone', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[skipBtn]])
+         });
 
         ctx.wizard.next();
     }
@@ -230,15 +221,13 @@ export class RegistrationWizard {
                 });
             }
 
-            await ctx.reply(
-                await this.i18n.t('bot.registration.finish_success', { lang }),
-                Markup.inlineKeyboard([
+            await ctx.reply(await this.i18n.t('bot.registration.finish_success', { lang }), { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
                     [Markup.button.webApp(
                         lang === 'ru' ? '🎓 Открыть кабинет' : '🎓 Kabinetni ochish',
                         process.env.STUDENT_MINI_APP_URL || ''
                     )]
                 ])
-            );
+             });
 
             // Check if user came via deep link
             if (state['test_id']) {

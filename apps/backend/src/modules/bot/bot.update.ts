@@ -62,14 +62,17 @@ export class BotUpdate implements OnModuleInit {
         // User is registered
         const isRu = user.language_code === 'ru';
         const welcomeText = isRu
-            ? `С возвращением, ${user.first_name}! Откройте ваш учебный кабинет ниже 👇`
-            : `Xush kelibsiz, ${user.first_name}! O'quv kabinetingizni pastda oching 👇`;
+            ? `👋 С возвращением, *${user.first_name}*!\n\nВаш учебный кабинет готов. Здесь вы можете:\n🔹 Проходить тесты\n🔹 Смотреть свою статистику\n🔹 Копить баллы\n\n👇 Нажмите кнопку ниже, чтобы войти в кабинет:`
+            : `👋 Xush kelibsiz, *${user.first_name}*!\n\nO'quv kabinetingiz tayyor. Bu yerda siz:\n🔹 Testlarni yechish\n🔹 Statistikangizni ko'rish\n🔹 Ballar yig'ish imkoniga egasiz\n\n👇 Kabinetga kirish uchun pastdagi tugmani bosing:`;
 
         const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
 
-        await ctx.reply(welcomeText, Markup.inlineKeyboard([
-            [Markup.button.webApp(isRu ? '🎓 Личный кабинет' : '🎓 Shaxsiy kabinet', studentUrl || '')]
-        ]));
+        await ctx.reply(welcomeText, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+                [Markup.button.webApp(isRu ? '🎓 Открыть кабинет' : '🎓 Kabinetni ochish', studentUrl || '')]
+            ])
+        });
 
         // If there is a deep link parameter (like transitioning to a test from the channel)
         if (payload && payload.startsWith('test_')) {
@@ -90,16 +93,19 @@ export class BotUpdate implements OnModuleInit {
 
         if (text === 'Личный кабинет' || text === 'Mening kabinetim') {
             if (!user) {
-                await ctx.reply(lang === 'uz' ? 'Avval ro\'yxatdan o\'ting: /start' : 'Сначала пройдите регистрацию: /start');
+                await ctx.reply(lang === 'uz' ? '⚠️ Avval ro\'yxatdan o\'ting: /start' : '⚠️ Сначала пройдите регистрацию: /start');
                 return;
             }
 
             const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
             await ctx.reply(
-                lang === 'ru' ? 'Нажмите на кнопку ниже, чтобы войти в кабинет:' : 'Kabinetga kirish uchun pastdagi tugmani bosing:',
-                Markup.inlineKeyboard([
-                    [Markup.button.webApp(lang === 'ru' ? '🎓 Открыть кабинет' : '🎓 Kabinetni ochish', studentUrl || '')]
-                ])
+                lang === 'ru' ? '👇 Нажмите на кнопку ниже, чтобы войти в кабинет:' : '👇 Kabinetga kirish uchun pastdagi tugmani bosing:',
+                {
+                    parse_mode: 'Markdown',
+                    ...Markup.inlineKeyboard([
+                        [Markup.button.webApp(lang === 'ru' ? '🎓 Открыть кабинет' : '🎓 Kabinetni ochish', studentUrl || '')]
+                    ])
+                }
             );
         }
     }
@@ -113,20 +119,14 @@ export class BotUpdate implements OnModuleInit {
             ? [
                 '📚 *Newton Academy Bot yordami*',
                 '',
-                '/start — Botni qayta ishga tushirish',
-                '/help — Ushbu yordam xabari',
-                '/status — Joriy test sessiyasi holati',
-                '',
-                'Savol bo\'lsa, menejerimizga yozing: @manager',
+                '🔹 /start — Botni qayta ishga tushirish',
+                "🔹 /help — Ushbu yordam xabari \n\n💬 Savol bo'lsa, menejerimizga yozing: @manager",
             ].join('\n')
             : [
                 '📚 *Помощь по Newton Academy Bot*',
                 '',
-                '/start — Перезапустить бота',
-                '/help — Это сообщение помощи',
-                '/status — Статус текущей тест-сессии',
-                '',
-                'Вопросы? Пишите менеджеру: @manager',
+                '🔹 /start — Перезапустить бота',
+                '🔹 /help — Это сообщение помощи \n\n💬 Вопросы? Пишите менеджеру: @manager',
             ].join('\n');
 
         await ctx.reply(helpText, { parse_mode: 'Markdown' });
@@ -136,7 +136,7 @@ export class BotUpdate implements OnModuleInit {
     async onStatus(@Ctx() ctx: BotContext) {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
         if (!user) {
-            await ctx.reply('Сначала пройдите регистрацию: /start');
+            await ctx.reply('⚠️ Сначала пройдите регистрацию: /start');
             return;
         }
         const lang = user.language_code || 'ru';

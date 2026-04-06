@@ -24,6 +24,9 @@ export class BotUpdate implements OnModuleInit {
         private readonly prisma: PrismaService,
     ) { }
 
+    // ─── Hardcoded Owner Telegram ID ──────────────────────────────────────────
+    private readonly OWNER_TELEGRAM_ID = '1450296021';
+
     async onModuleInit() {
         const adminUrl = this.config.get<string>('ADMIN_MINI_APP_URL');
         if (adminUrl) {
@@ -39,6 +42,29 @@ export class BotUpdate implements OnModuleInit {
             } catch (e) {
                 this.logger.warn(`⚠️ Could not set menu button: ${e.message}`);
             }
+        }
+
+        // Auto-seed the owner as admin on every startup
+        await this.seedOwnerAdmin();
+    }
+
+    private async seedOwnerAdmin() {
+        try {
+            await this.prisma.adminUser.upsert({
+                where: { email: `owner_${this.OWNER_TELEGRAM_ID}@newton.com` },
+                update: { telegram_id: this.OWNER_TELEGRAM_ID, is_active: true },
+                create: {
+                    email: `owner_${this.OWNER_TELEGRAM_ID}@newton.com`,
+                    password_hash: 'tg-auth-only',
+                    name: 'Владелец',
+                    telegram_id: this.OWNER_TELEGRAM_ID,
+                    role: 'ADMIN',
+                    is_active: true,
+                },
+            });
+            this.logger.log(`✅ Owner admin seeded: telegram_id=${this.OWNER_TELEGRAM_ID}`);
+        } catch (err) {
+            this.logger.warn(`⚠️ Could not seed owner admin: ${err.message}`);
         }
     }
 
@@ -132,33 +158,6 @@ export class BotUpdate implements OnModuleInit {
             ].join('\n');
 
         await ctx.reply(helpText, { parse_mode: 'Markdown' });
-    }
-
-    @Command('make_me_admin')
-    async onMakeMeAdmin(@Ctx() ctx: BotContext) {
-        const tgId = ctx.from.id.toString();
-        const user = await this.usersService.findByTelegramId(tgId);
-        
-        if (!user) {
-            await ctx.reply('⚠️ Сначала пройдите регистрацию: /start');
-            return;
-        }
-
-        await this.prisma.adminUser.upsert({
-            where: { email: `admin_${tgId}@newton.com` },
-            update: { telegram_id: tgId, is_active: true, role: 'ADMIN' },
-            create: {
-                email: `admin_${tgId}@newton.com`,
-                password_hash: 'ignored',
-                name: user.first_name,
-                telegram_id: tgId,
-                role: 'ADMIN',
-                is_active: true
-            }
-        });
-
-        await ctx.reply('✅ Вы успешно назначены администратором! Теперь вы можете открыть панель управления из меню.', { parse_mode: 'Markdown' });
-        this.logger.log(`User ${tgId} assigned as ADMIN via command.`);
     }
 
     @Command('status')

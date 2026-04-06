@@ -59,10 +59,17 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-red-50 p-8">
-                <div className="text-4xl mb-4">⚠️</div>
-                <p className="text-red-700 font-semibold text-center">{error}</p>
-                <p className="text-gray-500 text-sm mt-2">Откройте через Telegram</p>
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0f] p-8">
+                <div className="text-4xl mb-4 text-center">🔐</div>
+                <p className="text-white font-medium text-center text-lg mb-2">Требуется доступ</p>
+                <p className="text-gray-400 text-sm text-center">
+                    {(error.includes('401') || error.toLowerCase().includes('admin') || error.toLowerCase().includes('не связан'))
+                        ? 'Ваш Telegram-аккаунт не зарегистрирован как администратор. Обратитесь к владельцу системы или введите команду /make_me_admin в боте.' 
+                        : error}
+                </p>
+                {(error.includes('401') || error.toLowerCase().includes('admin') || error.toLowerCase().includes('не связан')) && (
+                     <p className="text-blue-400 text-xs mt-6 opacity-70">Newton Academy Security</p>
+                )}
             </div>
         )
     }

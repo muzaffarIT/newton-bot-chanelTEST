@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchProfile, fetchAvailableTests, fetchHistory } from '@/lib/api'
 import { Trophy, Clock, BookOpen, ChevronRight, Play, Star, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import { BottomNav } from '@/components/BottomNav'
 import { useI18n } from '@/context/I18nContext'
 import { cn } from '@/lib/utils'
 import { motion, Variants } from 'framer-motion'
@@ -48,6 +49,7 @@ export default function Dashboard() {
     const featuredTest = tests?.[0]
 
     return (
+        <>
         <motion.main 
             variants={container}
             initial="hidden"
@@ -107,7 +109,7 @@ export default function Dashboard() {
                 </div>
 
                 {featuredTest ? (
-                    <Link href={`/tests/${featuredTest.id}`}>
+                    <Link href={`/tests/${featuredTest.id}/play`}>
                         <motion.div 
                             whileHover={{ scale: 0.98 }}
                             whileTap={{ scale: 0.95 }}
@@ -189,5 +191,7 @@ export default function Dashboard() {
             </motion.section>
 
         </motion.main>
+            <BottomNav />
+        </>
     )
 }

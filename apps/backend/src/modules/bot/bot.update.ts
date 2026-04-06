@@ -5,6 +5,7 @@ import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface BotContext extends Context {
     scene: Scenes.SceneContextScene<BotContext, Scenes.WizardSessionData>;
@@ -20,6 +21,7 @@ export class BotUpdate implements OnModuleInit {
         private readonly usersService: UsersService,
         @InjectBot() private readonly bot: Telegraf,
         private readonly config: ConfigService,
+        private readonly prisma: PrismaService,
     ) { }
 
     async onModuleInit() {
@@ -130,6 +132,33 @@ export class BotUpdate implements OnModuleInit {
             ].join('\n');
 
         await ctx.reply(helpText, { parse_mode: 'Markdown' });
+    }
+
+    @Command('make_me_admin')
+    async onMakeMeAdmin(@Ctx() ctx: BotContext) {
+        const tgId = ctx.from.id.toString();
+        const user = await this.usersService.findByTelegramId(tgId);
+        
+        if (!user) {
+            await ctx.reply('⚠️ Сначала пройдите регистрацию: /start');
+            return;
+        }
+
+        await this.prisma.adminUser.upsert({
+            where: { email: `admin_${tgId}@newton.com` },
+            update: { telegram_id: tgId, is_active: true, role: 'ADMIN' },
+            create: {
+                email: `admin_${tgId}@newton.com`,
+                password_hash: 'ignored',
+                name: user.first_name,
+                telegram_id: tgId,
+                role: 'ADMIN',
+                is_active: true
+            }
+        });
+
+        await ctx.reply('✅ Вы успешно назначены администратором! Теперь вы можете открыть панель управления из меню.', { parse_mode: 'Markdown' });
+        this.logger.log(`User ${tgId} assigned as ADMIN via command.`);
     }
 
     @Command('status')

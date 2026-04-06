@@ -158,41 +158,51 @@ export default function TestPlayer() {
                 </div>
             )}
 
-            <main className="p-6 pb-32">
-                <div className="mb-6">
-                    <span className="text-tg-hint text-xs font-bold uppercase tracking-widest">
+            <main className="p-6 pb-32 animate-in slide-in-from-right-8 duration-300">
+                <div className="mb-8">
+                    <span className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
                         Вопрос {currentIndex + 1} из {questions.length}
                     </span>
-                    <h2 className="text-xl font-bold mt-2 leading-tight">
-                        {currentQuestion.text}
+                    <h2 className="text-2xl font-bold mt-4 leading-snug tracking-tight text-white/95">
+                        {currentQuestion.content}
                     </h2>
                 </div>
 
                 {currentQuestion.image_url && (
-                    <img src={currentQuestion.image_url} alt="Question" className="rounded-2xl w-full mb-6 border border-white/10" />
+                    <div className="relative mb-8 rounded-[24px] overflow-hidden border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+                        <img src={currentQuestion.image_url} alt="Question" className="w-full object-cover" />
+                        <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-[24px] pointer-events-none" />
+                    </div>
                 )}
 
                 {/* Options */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {currentQuestion.options.map((option: any) => (
                         <button
                             key={option.id}
                             onClick={() => handleAnswerSelect(option.id)}
                             className={cn(
-                                "w-full text-left p-4 rounded-2xl border-2 transition-all",
+                                "w-full text-left p-5 rounded-[24px] border transition-all active:scale-[0.98]",
                                 selectedAnswers[currentQuestion.id] === option.id
-                                    ? "border-tg-accent bg-tg-accent/5"
-                                    : "border-transparent bg-tg-secondary active:bg-white/5"
+                                    ? "border-blue-500/50 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                                    : "border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10"
                             )}
                         >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
                                 <div className={cn(
-                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0",
-                                    selectedAnswers[currentQuestion.id] === option.id ? "border-tg-accent bg-tg-accent" : "border-tg-hint"
+                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                                    selectedAnswers[currentQuestion.id] === option.id 
+                                    ? "border-blue-400 bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]" 
+                                    : "border-gray-500"
                                 )}>
                                     {selectedAnswers[currentQuestion.id] === option.id && <div className="w-2 h-2 bg-white rounded-full" />}
                                 </div>
-                                <span className="font-medium">{option.text}</span>
+                                <span className={cn(
+                                    "font-medium text-[15px] leading-relaxed transition-colors",
+                                    selectedAnswers[currentQuestion.id] === option.id ? "text-white" : "text-gray-300"
+                                )}>
+                                    {option.content}
+                                </span>
                             </div>
                         </button>
                     ))}
@@ -200,26 +210,26 @@ export default function TestPlayer() {
             </main>
 
             {/* Footer Navigation */}
-            <footer className="fixed bottom-0 left-0 right-0 p-6 glass border-t border-white/5 flex items-center gap-4">
+            <footer className="fixed bottom-0 left-0 right-0 p-5 glass border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-30 flex items-center gap-3 animate-in slide-in-from-bottom duration-300">
                 <button
                     disabled={currentIndex === 0}
                     onClick={() => setCurrentIndex(prev => prev - 1)}
-                    className="flex-1 py-4 bg-tg-secondary text-tg-text font-bold rounded-2xl disabled:opacity-30 active:scale-95 transition-all"
+                    className="flex-1 py-4 bg-white/5 text-gray-300 font-bold rounded-2xl disabled:opacity-30 active:scale-95 transition-all hover:bg-white/10 hover:text-white"
                 >
                     Назад
                 </button>
 
                 {currentIndex === questions.length - 1 ? (
                     <button
-                        onClick={() => submitMutation.mutate()}
-                        className="flex-[2] btn-primary"
+                        onClick={() => { if (confirm('Вы уверены, что хотите завершить тест?')) submitMutation.mutate() }}
+                        className="flex-[2] py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
                     >
-                        Отправить <Send size={18} />
+                        Завершить <Send size={18} />
                     </button>
                 ) : (
                     <button
                         onClick={() => setCurrentIndex(prev => prev + 1)}
-                        className="flex-[2] btn-primary"
+                        className="flex-[2] py-4 bg-blue-500 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:bg-blue-400 flex items-center justify-center gap-2"
                     >
                         Далее <ChevronRight size={18} />
                     </button>

@@ -94,12 +94,19 @@ export class RegistrationWizard {
         const lang = ctx.wizard.state['language'];
 
         const msg = lang === 'ru' ? 'В каком вы классе?' : 'Nechanchi sinfda o\'qiysiz?';
-        await ctx.reply(msg, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                [Markup.button.callback('5 класс', 'grade_5'), Markup.button.callback('6 класс', 'grade_6')],
-                [Markup.button.callback('7 класс', 'grade_7'), Markup.button.callback('8 класс', 'grade_8')],
-                [Markup.button.callback('9 класс', 'grade_9'), Markup.button.callback('Другое', 'grade_other')]
-            ])
-         });
+        
+        // 3 buttons per row: "Почемучка", "1 класс", ..., "11 класс". Total 12 options = 4 rows of 3 buttons.
+        const keyboard = [
+            [Markup.button.callback('Почемучка', 'grade_0'), Markup.button.callback('1 класс', 'grade_1'), Markup.button.callback('2 класс', 'grade_2')],
+            [Markup.button.callback('3 класс', 'grade_3'), Markup.button.callback('4 класс', 'grade_4'), Markup.button.callback('5 класс', 'grade_5')],
+            [Markup.button.callback('6 класс', 'grade_6'), Markup.button.callback('7 класс', 'grade_7'), Markup.button.callback('8 класс', 'grade_8')],
+            [Markup.button.callback('9 класс', 'grade_9'), Markup.button.callback('10 класс', 'grade_10'), Markup.button.callback('11 класс', 'grade_11')]
+        ];
+
+        await ctx.reply(msg, { 
+            parse_mode: 'Markdown', 
+            ...Markup.inlineKeyboard(keyboard)
+        });
 
         ctx.wizard.next();
     }

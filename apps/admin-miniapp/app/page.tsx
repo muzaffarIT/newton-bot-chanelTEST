@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import { fetchStats } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
 
@@ -44,13 +44,36 @@ function StatusBar({ data }: { data: Record<string, number> }) {
 }
 
 export default function DashboardPage() {
-    const { data, isLoading, error } = useQuery({
-        queryKey: ['stats'],
-        queryFn: fetchStats,
-        refetchInterval: 30000,
-    })
+    const [data, setData] = useState<any>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState(false)
 
-    if (isLoading) {
+    useEffect(() => {
+        let isMounted = true
+        
+        async function loadDashboardData() {
+            try {
+                setIsLoading(true)
+                setError(false)
+                const res = await fetchStats()
+                if (isMounted) setData(res)
+            } catch (err) {
+                if (isMounted) setError(true)
+            } finally {
+                if (isMounted) setIsLoading(false)
+            }
+        }
+        
+        loadDashboardData()
+        
+        const intervalId = setInterval(loadDashboardData, 30000)
+        return () => {
+            isMounted = false
+            clearInterval(intervalId)
+        }
+    }, [])
+
+    if (isLoading && !data) {
         return (
             <div className="flex flex-col gap-3 p-4 pb-24 animate-pulse">
                 {[...Array(4)].map((_, i) => (
@@ -60,12 +83,12 @@ export default function DashboardPage() {
         )
     }
 
-    if (error) {
+    if (error && !data) {
         return (
             <div className="p-4 pb-24">
                 <div className="card text-center py-8">
                     <div className="text-4xl mb-3">⚠️</div>
-                    <p className="text-red-400">Ошибка загрузки данных</p>
+                    <p className="text-red-400">Ошибка загрузки данных API</p>
                 </div>
             </div>
         )

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchScheduledPosts, schedulePost, fetchChannels, fetchTests, api } from '@/lib/api'
+import { useState, useEffect } from 'react'
+import { api, fetchScheduledPosts, fetchChannels, fetchTests, schedulePost } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
 import { cn } from '@/lib/utils'
 
@@ -12,7 +11,6 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function SchedulePage() {
-    const qc = useQueryClient()
     const [showForm, setShowForm] = useState(false)
     const [selectedChannel, setSelectedChannel] = useState('')
     const [selectedTest, setSelectedTest] = useState('')
@@ -20,28 +18,63 @@ export default function SchedulePage() {
     const [scheduledAt, setScheduledAt] = useState('')
     const [language, setLanguage] = useState<'ru' | 'uz'>('ru')
 
-    const { data: posts, isLoading } = useQuery({
-        queryKey: ['posts'], queryFn: () => fetchScheduledPosts(1),
-    })
-    const { data: channels } = useQuery({ queryKey: ['channels'], queryFn: fetchChannels })
-    const { data: tests } = useQuery({ queryKey: ['tests-list'], queryFn: () => fetchTests(1) })
+    // Data states
+    const [posts, setPosts] = useState<any[]>([])
+    const [channels, setChannels] = useState<any[]>([])
+    const [tests, setTests] = useState<any[]>([])
+    const [isLoadingData, setIsLoadingData] = useState(true)
 
-    const mutation = useMutation({
-        mutationFn: () => {
-            // My lib/api.ts might need an update to accept language
-            return api.post('/api/admin/scheduler/schedule', {
+    // Form states
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [submitError, setSubmitError] = useState(false)
+
+    const loadData = async () => {
+        try {
+            setIsLoadingData(true)
+            const [postsRes, channelsRes, testsRes] = await Promise.all([
+                fetchScheduledPosts(1),
+                fetchChannels(),
+                fetchTests(1)
+            ])
+            setPosts(postsRes.posts || [])
+            setChannels(channelsRes.channels || [])
+            setTests(testsRes.tests || [])
+        } catch (err) {
+            console.error(err)
+        } finally {
+            setIsLoadingData(false)
+        }
+    }
+
+    // Effect: Mount and fetch lists
+    useEffect(() => {
+        loadData()
+    }, [])
+
+    // Handler: Publish/Schedule
+    const onSubmit = async () => {
+        try {
+            setIsSubmitting(true)
+            setSubmitError(false)
+            
+            await api.post('/api/admin/scheduler/schedule', {
                 channelId: selectedChannel,
                 testId: selectedTest,
                 publishNow,
                 language,
                 scheduledAt: publishNow ? null : scheduledAt
             })
-        },
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['posts'] })
+            
             setShowForm(false)
-        },
-    })
+            // Refresh list
+            loadData()
+        } catch (err) {
+            console.error(err)
+            setSubmitError(true)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     return (
         <div className="flex flex-col pb-24">
@@ -64,24 +97,24 @@ export default function SchedulePage() {
 
                     <label className="text-xs text-gray-400 mb-1 block">Канал</label>
                     <select
-                        className="w-full bg-white/5 rounded-xl px-3 py-2 text-sm mb-3 border border-white/10"
+                        className="w-full bg-white/5 rounded-xl px-3 py-2 text-sm mb-3 border border-white/10 outline-none"
                         value={selectedChannel}
                         onChange={e => setSelectedChannel(e.target.value)}
                     >
                         <option value="">Выберите канал...</option>
-                        {channels?.channels?.map((ch: any) => (
+                        {channels.map((ch: any) => (
                             <option key={ch.id} value={ch.telegram_id}>{ch.name}</option>
                         ))}
                     </select>
 
                     <label className="text-xs text-gray-400 mb-1 block">Тест</label>
                     <select
-                        className="w-full bg-white/5 rounded-xl px-3 py-2 text-sm mb-3 border border-white/10"
+                        className="w-full bg-white/5 rounded-xl px-3 py-2 text-sm mb-3 border border-white/10 outline-none"
                         value={selectedTest}
                         onChange={e => setSelectedTest(e.target.value)}
                     >
                         <option value="">Выберите тест...</option>
-                        {tests?.tests?.map((t: any) => (
+                        {tests.map((t: any) => (
                             <option key={t.id} value={t.id}>{t.title}</option>
                         ))}
                     </select>
@@ -113,7 +146,7 @@ export default function SchedulePage() {
                             <label className="text-xs text-gray-400 mb-1 block">Дата и время</label>
                             <input
                                 type="datetime-local"
-                                className="w-full bg-white/5 rounded-xl px-3 py-2 text-sm mb-3 border border-white/10"
+                                className="w-full bg-white/5 rounded-xl px-3 py-2 text-sm mb-3 border border-white/10 outline-none"
                                 value={scheduledAt}
                                 onChange={e => setScheduledAt(e.target.value)}
                             />
@@ -121,24 +154,24 @@ export default function SchedulePage() {
                     )}
 
                     <button
-                        onClick={() => mutation.mutate()}
-                        disabled={!selectedChannel || !selectedTest || mutation.isPending}
-                        className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40"
+                        onClick={onSubmit}
+                        disabled={!selectedChannel || !selectedTest || isSubmitting}
+                        className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 mt-2"
                     >
-                        {mutation.isPending ? 'Планируем...' : publishNow ? '🚀 Опубликовать' : '📅 Запланировать'}
+                        {isSubmitting ? 'Отправка API...' : publishNow ? '🚀 Опубликовать' : '📅 Запланировать'}
                     </button>
-                    {mutation.isError && (
-                        <p className="text-red-400 text-xs mt-2 text-center">Ошибка. Проверьте данные.</p>
+                    {submitError && (
+                        <p className="text-red-400 text-xs mt-2 text-center">Ошибка отправки формы. Проверьте данные.</p>
                     )}
                 </div>
             )}
 
             <div className="p-4 flex flex-col gap-2">
-                {isLoading
+                {isLoadingData
                     ? [...Array(3)].map((_, i) => <div key={i} className="card h-16 animate-pulse bg-white/5" />)
-                    : posts?.posts?.length === 0
+                    : posts.length === 0
                         ? <div className="card text-center py-10"><p className="text-gray-400">Нет постов</p></div>
-                        : posts?.posts?.map((post: any) => (
+                        : posts.map((post: any) => (
                             <div key={post.id} className="card">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">

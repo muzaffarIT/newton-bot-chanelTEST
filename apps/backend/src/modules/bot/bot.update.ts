@@ -158,6 +158,96 @@ export class BotUpdate implements OnModuleInit {
         }
     }
 
+    @Command('add_channel')
+    async onAddChannel(@Ctx() ctx: BotContext) {
+        const adminUser = await this.prisma.adminUser.findUnique({
+            where: { telegram_id: ctx.from.id.toString() }
+        });
+
+        if (!adminUser || !adminUser.is_active) {
+            await ctx.reply('⚠️ Только администраторы могут добавлять каналы.');
+            return;
+        }
+
+        await ctx.reply(
+            '📢 Пожалуйста, выберите канал, в который вы хотите добавить бота.\n\n_Нажмите на кнопку ниже и выберите канал из списка. Вы должны быть администратором этого канала._',
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    keyboard: [
+                        [
+                            {
+                                text: 'Выбрать канал',
+                                request_chat: {
+                                    request_id: 1, // Any arbitrary ID
+                                    chat_is_channel: true,
+                                    user_administrator_rights: {
+                                        can_post_messages: true,
+                                        can_edit_messages: true,
+                                        can_delete_messages: true,
+                                        can_post_stories: false,
+                                        can_edit_stories: false,
+                                        can_delete_stories: false,
+                                        is_anonymous: false,
+                                        can_manage_chat: true,
+                                        can_manage_video_chats: false,
+                                        can_restrict_members: false,
+                                        can_promote_members: false,
+                                        can_change_info: false,
+                                        can_invite_users: false,
+                                        can_pin_messages: false,
+                                    },
+                                    bot_administrator_rights: {
+                                        can_post_messages: true,
+                                        can_edit_messages: true,
+                                        can_delete_messages: true,
+                                        can_post_stories: false,
+                                        can_edit_stories: false,
+                                        can_delete_stories: false,
+                                        is_anonymous: false,
+                                        can_manage_chat: true,
+                                        can_manage_video_chats: false,
+                                        can_restrict_members: false,
+                                        can_promote_members: false,
+                                        can_change_info: false,
+                                        can_invite_users: false,
+                                        can_pin_messages: false,
+                                    }
+                                }
+                            }
+                        ]
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                }
+            }
+        );
+    }
+
+    @On('chat_shared')
+    async onChatShared(@Ctx() ctx: BotContext) {
+        // @ts-ignore
+        const chatShared = ctx.message?.chat_shared;
+        if (!chatShared) return;
+
+        const chatId = chatShared.chat_id.toString();
+
+        try {
+            await this.prisma.channel.upsert({
+                where: { telegram_id: chatId },
+                update: { is_active: true },
+                create: { telegram_id: chatId, name: `Channel ${chatId}`, is_active: true }
+            });
+
+            await ctx.reply(
+                `✅ Канал успешно добавлен в базу!\n\nID: \`${chatId}\`\n\n_Не забудьте обновить страницу админ панели. Название канала обновится автоматически при первом сообщении, или вы можете задать его вручную в панели._`,
+                { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } }
+            );
+        } catch (e) {
+            await ctx.reply('❌ Произошла ошибка при сохранении канала: ' + e.message);
+        }
+    }
+
     @Help()
     async onHelp(@Ctx() ctx: BotContext) {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());

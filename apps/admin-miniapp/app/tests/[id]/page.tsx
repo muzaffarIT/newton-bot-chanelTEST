@@ -136,7 +136,7 @@ export default function TestEditorPage() {
                                 </div>
                             </div>
                             
-                            <p className="font-semibold text-sm leading-relaxed mb-4">{q.text}</p>
+                            <p className="font-semibold text-sm leading-relaxed mb-4">{q.content}</p>
                             
                             {q.image_url && (
                                 <div className="relative h-32 w-full bg-white/5 rounded-xl mb-4 overflow-hidden border border-white/5">
@@ -151,7 +151,7 @@ export default function TestEditorPage() {
                                         opt.is_correct ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-white/5 text-gray-400"
                                     )}>
                                         {opt.is_correct ? <CheckCircle size={14} /> : <XCircle size={14} className="opacity-30" />}
-                                        <span className="truncate">{opt.text}</span>
+                                        <span className="truncate">{opt.content}</span>
                                     </div>
                                 ))}
                             </div>

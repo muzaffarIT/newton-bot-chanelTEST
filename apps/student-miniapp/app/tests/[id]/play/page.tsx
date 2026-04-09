@@ -81,27 +81,33 @@ export default function TestPlayer() {
     }
 
     return (
-        <div className="min-h-screen bg-tg-bg text-tg-text">
+        <div className="min-h-screen bg-[#0f0f1a] text-white relative overflow-hidden">
+            {/* Background Glows */}
+            <div className="absolute top-0 left-[-20%] w-[140%] h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-0 right-[-20%] w-[100%] h-[400px] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
+
             {/* Sticky Header */}
-            <header className="sticky top-0 z-30 glass border-b border-white/5 px-5 py-4 flex items-center justify-between">
+            <header className="sticky top-0 z-30 bg-[#0f0f1a]/60 backdrop-blur-2xl border-b border-white/5 px-5 py-4 flex items-center justify-between">
                 <button
                     onClick={() => setShowGrid(!showGrid)}
-                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-tg-secondary"
+                    className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all shadow-inner border border-white/5"
                 >
                     <div className="grid grid-cols-2 gap-0.5">
-                        <div className="w-1.5 h-1.5 bg-tg-text rounded-sm opacity-60" />
-                        <div className="w-1.5 h-1.5 bg-tg-text rounded-sm opacity-60" />
-                        <div className="w-1.5 h-1.5 bg-tg-text rounded-sm opacity-60" />
-                        <div className="w-1.5 h-1.5 bg-tg-text rounded-sm opacity-60" />
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-sm" />
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-sm" />
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-sm" />
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-sm" />
                     </div>
                 </button>
 
                 <div className={cn(
-                    "flex-1 mx-4 flex justify-center",
+                    "flex-1 mx-4 flex justify-center animate-in slide-in-from-top-4 duration-500 delay-100",
                 )}>
                     <div className={cn(
-                        "flex items-center gap-2 font-mono font-bold px-3 py-1 rounded-full",
-                        timeLeft && timeLeft < 300 ? "bg-red-500/10 text-red-500 animate-pulse" : "bg-tg-accent/10 text-tg-accent"
+                        "flex items-center gap-2 font-mono font-black text-lg px-4 py-1.5 rounded-2xl border backdrop-blur-md shadow-xl",
+                        timeLeft && timeLeft < 300 
+                            ? "bg-red-500/10 text-red-500 border-red-500/30 animate-pulse shadow-red-500/20" 
+                            : "bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-blue-500/10"
                     )}>
                         <Clock size={16} />
                         {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
@@ -110,7 +116,7 @@ export default function TestPlayer() {
 
                 <button
                     onClick={() => { if (confirm('Завершить тест?')) submitMutation.mutate() }}
-                    className="text-tg-accent font-bold text-sm"
+                    className="text-white bg-white/10 px-4 py-2 rounded-2xl font-bold text-sm active:scale-95 transition-all border border-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30"
                 >
                     Готово
                 </button>
@@ -158,12 +164,12 @@ export default function TestPlayer() {
                 </div>
             )}
 
-            <main className="p-6 pb-32 animate-in slide-in-from-right-8 duration-300">
-                <div className="mb-8">
-                    <span className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
-                        Вопрос {currentIndex + 1} из {questions.length}
-                    </span>
-                    <h2 className="text-2xl font-bold mt-4 leading-snug tracking-tight text-white/95">
+            <main className="p-6 pb-40 relative z-10 animate-in slide-in-from-right-8 fade-in flex flex-col gap-6 duration-500" key={currentQuestion.id}>
+                <div className="space-y-4">
+                    <div className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                        Вопрос {currentIndex + 1} / {questions.length}
+                    </div>
+                    <h2 className="text-2xl font-black leading-snug tracking-tight text-white drop-shadow-md">
                         {currentQuestion.content}
                     </h2>
                 </div>
@@ -176,29 +182,29 @@ export default function TestPlayer() {
                 )}
 
                 {/* Options */}
-                <div className="space-y-4">
+                <div className="space-y-3 mt-4">
                     {currentQuestion.options.map((option: any) => (
                         <button
                             key={option.id}
                             onClick={() => handleAnswerSelect(option.id)}
                             className={cn(
-                                "w-full text-left p-5 rounded-[24px] border transition-all active:scale-[0.98]",
+                                "w-full text-left p-5 rounded-3xl border-2 transition-all duration-300 active:scale-[0.98]",
                                 selectedAnswers[currentQuestion.id] === option.id
-                                    ? "border-blue-500/50 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                                    ? "border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.3)] translate-x-2"
                                     : "border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10"
                             )}
                         >
                             <div className="flex items-center gap-4">
                                 <div className={cn(
-                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                                    "w-7 h-7 rounded-full border-[3px] flex items-center justify-center shrink-0 transition-all duration-500",
                                     selectedAnswers[currentQuestion.id] === option.id 
-                                    ? "border-blue-400 bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]" 
-                                    : "border-gray-500"
+                                    ? "border-blue-400 bg-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.6)]" 
+                                    : "border-white/20"
                                 )}>
-                                    {selectedAnswers[currentQuestion.id] === option.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                                    {selectedAnswers[currentQuestion.id] === option.id && <div className="w-2.5 h-2.5 bg-white rounded-full scale-in-center" />}
                                 </div>
                                 <span className={cn(
-                                    "font-medium text-[15px] leading-relaxed transition-colors",
+                                    "font-bold text-[16px] leading-relaxed transition-colors",
                                     selectedAnswers[currentQuestion.id] === option.id ? "text-white" : "text-gray-300"
                                 )}>
                                     {option.content}
@@ -210,11 +216,11 @@ export default function TestPlayer() {
             </main>
 
             {/* Footer Navigation */}
-            <footer className="fixed bottom-0 left-0 right-0 p-5 glass border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-30 flex items-center gap-3 animate-in slide-in-from-bottom duration-300">
+            <footer className="fixed bottom-0 left-0 right-0 p-5 bg-[#0f0f1a]/80 backdrop-blur-2xl border-t border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] z-30 flex items-center gap-3 animate-in slide-in-from-bottom duration-500 delay-200">
                 <button
                     disabled={currentIndex === 0}
                     onClick={() => setCurrentIndex(prev => prev - 1)}
-                    className="flex-1 py-4 bg-white/5 text-gray-300 font-bold rounded-2xl disabled:opacity-30 active:scale-95 transition-all hover:bg-white/10 hover:text-white"
+                    className="flex-1 py-4.5 bg-white/5 text-gray-300 font-bold rounded-2xl disabled:opacity-20 active:scale-95 transition-all hover:bg-white/10 hover:text-white border border-white/5"
                 >
                     Назад
                 </button>
@@ -222,16 +228,16 @@ export default function TestPlayer() {
                 {currentIndex === questions.length - 1 ? (
                     <button
                         onClick={() => { if (confirm('Вы уверены, что хотите завершить тест?')) submitMutation.mutate() }}
-                        className="flex-[2] py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
+                        className="flex-[2] py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black rounded-2xl active:scale-95 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2"
                     >
-                        Завершить <Send size={18} />
+                        Завершить <Send size={20} />
                     </button>
                 ) : (
                     <button
                         onClick={() => setCurrentIndex(prev => prev + 1)}
-                        className="flex-[2] py-4 bg-blue-500 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:bg-blue-400 flex items-center justify-center gap-2"
+                        className="flex-[2] py-4 bg-blue-600 text-white font-black rounded-2xl active:scale-95 transition-all shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:bg-blue-500 flex items-center justify-center gap-2"
                     >
-                        Далее <ChevronRight size={18} />
+                        Далее <ChevronRight size={20} strokeWidth={3}/>
                     </button>
                 )}
             </footer>

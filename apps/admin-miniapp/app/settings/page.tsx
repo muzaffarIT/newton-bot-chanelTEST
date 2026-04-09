@@ -57,16 +57,28 @@ export default function SettingsPage() {
                         <p className="font-semibold flex items-center gap-2">
                             📡 <span>Каналы ({channels?.total ?? 0})</span>
                         </p>
-                        <button onClick={() => setIsAddingChannel(!isAddingChannel)} className="text-blue-400 p-1">
-                            {isAddingChannel ? 'Отмена' : <Plus size={18} />}
+                        <button onClick={() => setIsAddingChannel(!isAddingChannel)} className="text-blue-400 p-1 font-bold text-xs uppercase cursor-pointer">
+                            {isAddingChannel ? 'Отмена' : '+ Добавить'}
                         </button>
                     </div>
 
                     {isAddingChannel && (
-                        <div className="mb-4 space-y-2 p-3 bg-white/5 rounded-xl border border-white/10">
-                            <input placeholder="Название (напр. Группа 1)" value={channelName} onChange={e => setChannelName(e.target.value)} className="input bg-black/20 text-xs py-2" />
-                            <input placeholder="Telegram ID (напр. -100123...)" value={channelId} onChange={e => setChannelId(e.target.value)} className="input bg-black/20 text-xs py-2" />
-                            <button onClick={() => createChannelMut.mutate()} disabled={!channelName || !channelId} className="btn-primary w-full py-2 flex items-center justify-center text-xs">Добавить канал</button>
+                        <div className="mb-4 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/30 text-center shadow-[0_0_20px_rgba(37,99,235,0.15)] animate-in slide-in-from-top-4">
+                            <p className="text-xs text-blue-200 mb-3 leading-relaxed">
+                                Для удобства и безопасности каналы добавляются через бота. <br/><br/>
+                                Введите команду <b>/add_channel</b> в чате с ботом, нажмите «Выбрать канал» и Telegram сам подтянет его ID!
+                            </p>
+                            <button 
+                                onClick={() => {
+                                    if(window.Telegram?.WebApp) {
+                                        // This will ask to send a message /add_channel to the bot natively!
+                                        window.Telegram.WebApp.close();
+                                    }
+                                }} 
+                                className="btn-primary w-full py-2.5 flex items-center justify-center text-xs shadow-xl shadow-blue-600/20"
+                            >
+                                Перейти в бот
+                            </button>
                         </div>
                     )}
 

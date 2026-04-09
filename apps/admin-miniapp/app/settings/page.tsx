@@ -70,9 +70,9 @@ export default function SettingsPage() {
                             </p>
                             <button 
                                 onClick={() => {
-                                    if(window.Telegram?.WebApp) {
+                                    if((window as any).Telegram?.WebApp) {
                                         // This will ask to send a message /add_channel to the bot natively!
-                                        window.Telegram.WebApp.close();
+                                        (window as any).Telegram.WebApp.close();
                                     }
                                 }} 
                                 className="btn-primary w-full py-2.5 flex items-center justify-center text-xs shadow-xl shadow-blue-600/20"

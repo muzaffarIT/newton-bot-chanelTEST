@@ -5,16 +5,43 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminJwtAuthGuard } from '../auth/admin-jwt.guard';
 import { RewardType } from '@prisma/client';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsEnum } from 'class-validator';
+import { Type } from 'class-transformer';
 
 class CreateRewardDto {
+  @IsString()
   title_ru: string;
+
+  @IsString()
   title_uz: string;
+
+  @IsString()
+  @IsOptional()
   description_ru?: string;
+
+  @IsString()
+  @IsOptional()
   description_uz?: string;
+
+  @IsNumber()
+  @Type(() => Number)
   point_cost: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
   stock_limits?: number;
+
+  @IsBoolean()
+  @IsOptional()
   is_active?: boolean;
+
+  @IsEnum(RewardType)
+  @IsOptional()
   type?: RewardType;
+
+  @IsString()
+  @IsOptional()
   image_url?: string;
 }
 

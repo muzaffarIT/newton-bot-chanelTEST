@@ -5,6 +5,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminJwtAuthGuard } from '../auth/admin-jwt.guard';
+import { IsString, IsOptional } from 'class-validator';
+
+class UpdateLeadStatusDto {
+    @IsString()
+    status: string;
+
+    @IsString()
+    @IsOptional()
+    comment?: string;
+
+    @IsString()
+    @IsOptional()
+    managerId?: string;
+}
 
 /**
  * Admin Leads Controller.
@@ -60,7 +74,7 @@ export class AdminLeadsController {
     @Patch(':id/status')
     async updateStatus(
         @Param('id') id: string,
-        @Body() body: { status: string; comment?: string; managerId?: string },
+        @Body() body: UpdateLeadStatusDto,
     ) {
         const lead = await this.prisma.lead.findUnique({ where: { id } });
         if (!lead) throw new HttpException('Lead not found', HttpStatus.NOT_FOUND);

@@ -42,6 +42,15 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
                     throw new Error('Данные Telegram не найдены. Откройте приложение внутри Telegram.')
                 }
 
+                if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                    (window as any).Telegram.WebApp.ready();
+                    (window as any).Telegram.WebApp.expand();
+                    // Disable vertical swipes to prevent accidental closing
+                    if ((window as any).Telegram.WebApp.disableVerticalSwipes) {
+                        (window as any).Telegram.WebApp.disableVerticalSwipes();
+                    }
+                }
+
                 await authWithInitData(initDataRaw as string)
                 setReady(true)
             } catch (e: any) {

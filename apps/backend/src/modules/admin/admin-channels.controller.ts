@@ -5,10 +5,17 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminJwtAuthGuard } from '../auth/admin-jwt.guard';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
 
 class CreateChannelDto {
+    @IsString()
     telegram_id: string; // e.g. "-100123456789"
+
+    @IsString()
     name: string;
+
+    @IsBoolean()
+    @IsOptional()
     is_active?: boolean;
 }
 

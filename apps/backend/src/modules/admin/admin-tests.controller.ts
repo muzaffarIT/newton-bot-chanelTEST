@@ -5,19 +5,51 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminJwtAuthGuard } from '../auth/admin-jwt.guard';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 class CreateTestDto {
+    @IsString()
     title: string;
+
+    @IsString()
+    @IsOptional()
     description?: string;
+
+    @IsNumber()
+    @IsOptional()
+    @Type(() => Number)
     duration_minutes?: number;
+
+    @IsBoolean()
+    @IsOptional()
     allow_retakes?: boolean;
 }
 
-class CreateQuestionDto {
+class QuestionOptionDto {
+    @IsString()
     content: string;
+
+    @IsBoolean()
+    is_correct: boolean;
+}
+
+class CreateQuestionDto {
+    @IsString()
+    content: string;
+
+    @IsString()
     topic_id: string;
+
+    @IsNumber()
+    @IsOptional()
+    @Type(() => Number)
     order_num?: number;
-    options: { content: string; is_correct: boolean }[];
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => QuestionOptionDto)
+    options: QuestionOptionDto[];
 }
 
 /**

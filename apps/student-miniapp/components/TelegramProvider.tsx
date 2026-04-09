@@ -35,6 +35,14 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
                     throw new Error('Пожалуйста, откройте это приложение в Telegram')
                 }
 
+                if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                    (window as any).Telegram.WebApp.ready();
+                    (window as any).Telegram.WebApp.expand();
+                    if ((window as any).Telegram.WebApp.disableVerticalSwipes) {
+                        (window as any).Telegram.WebApp.disableVerticalSwipes();
+                    }
+                }
+
                 await authWithInitData(initDataRaw)
                 setReady(true)
             } catch (e: any) {

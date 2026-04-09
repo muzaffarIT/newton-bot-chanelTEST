@@ -62,7 +62,7 @@ export default function SchedulePage() {
                 testId: selectedTest,
                 publishNow,
                 language,
-                scheduledAt: publishNow ? null : scheduledAt
+                publishAt: publishNow || !scheduledAt ? undefined : new Date(scheduledAt).toISOString()
             })
             
             setShowForm(false)

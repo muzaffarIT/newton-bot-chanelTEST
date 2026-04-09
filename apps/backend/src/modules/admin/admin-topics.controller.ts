@@ -5,9 +5,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminJwtAuthGuard } from '../auth/admin-jwt.guard';
+import { IsString, IsOptional } from 'class-validator';
 
 class CreateTopicDto {
+    @IsString()
     name: string;
+
+    @IsString()
+    @IsOptional()
     description?: string;
 }
 

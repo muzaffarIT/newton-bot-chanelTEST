@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { TelegramProvider } from "@/components/TelegramProvider";
 import { I18nProvider } from "@/context/I18nContext";
 import { Montserrat } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const outfit = Montserrat({ subsets: ["latin", "cyrillic"], variable: "--font-outfit" });
@@ -27,7 +28,7 @@ export default function RootLayout({
     return (
         <html lang="ru" className={`${outfit.variable}`}>
             <head>
-                <script src="https://telegram.org/js/telegram-web-app.js" async />
+                <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
             </head>
             <body className="antialiased bg-[#0a0a0f] text-white selection:bg-blue-500/30">
                 <I18nProvider>

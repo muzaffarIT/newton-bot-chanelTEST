@@ -21,7 +21,7 @@ export default function TestEditorPage() {
 
     const updateTestMutation = useMutation({
         mutationFn: async (data: any) => {
-            const { data: res } = await api.patch(`/api/admin/tests/${id}`, data)
+            const { data: res } = await api.put(`/api/admin/tests/${id}`, data)
             return res
         },
         onSuccess: () => {

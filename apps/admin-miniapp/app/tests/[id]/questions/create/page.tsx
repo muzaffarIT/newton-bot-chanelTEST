@@ -48,15 +48,15 @@ export default function CreateQuestionPage() {
         formData.append('file', file)
 
         try {
-            const res = await fetch('https://telegra.ph/upload', {
+            const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             })
             const data = await res.json()
-            if (data && data[0] && data[0].src) {
-                setImageUrl('https://telegra.ph' + data[0].src)
+            if (res.ok && data.url) {
+                setImageUrl(data.url)
             } else {
-                alert('Ошибка загрузки файла')
+                alert(data.error || 'Ошибка загрузки файла')
             }
         } catch (err) {
             alert('Ошибка сервера при загрузке')
@@ -86,26 +86,26 @@ export default function CreateQuestionPage() {
     }
 
     return (
-        <div className="flex flex-col pb-32">
-            <header className="sticky top-0 bg-[#0f0f1a]/80 backdrop-blur-xl border-b border-white/5 px-5 py-4 z-40 flex items-center justify-between shadow-xl shadow-black/20">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 active:scale-90 transition-transform">
-                    <ChevronLeft size={20} />
+        <div className="flex flex-col pb-32 bg-[#0f0f1a] min-h-screen text-gray-100 font-sans">
+            <header className="sticky top-0 bg-[#0f0f1a]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 z-40 flex items-center justify-between">
+                <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition-colors">
+                    <ChevronLeft size={24} />
                 </button>
                 <div className="text-right">
-                    <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Плюс Вопрос</h1>
-                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Wow Редактор</p>
+                    <h1 className="text-base font-medium">Создание вопроса</h1>
+                    <p className="text-[11px] text-gray-500 uppercase tracking-widest">Редактор</p>
                 </div>
             </header>
 
-            <main className="p-5 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <main className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* 1. Theme Selection */}
                 <div className="space-y-4">
-                    <div className="p-5 rounded-3xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 shadow-lg">
-                        <label className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-3 block">1. Выбор Темы</label>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">1. Тема вопроса</label>
                         <select 
                             value={topicId}
                             onChange={(e) => setTopicId(e.target.value)}
-                            className="w-full bg-black/40 rounded-2xl px-4 py-4 text-sm border border-white/5 outline-none appearance-none font-medium"
+                            className="w-full bg-[#1c1c28] rounded-xl px-4 py-3 text-sm border border-white/5 outline-none font-medium focus:border-blue-500/50 transition-colors"
                         >
                             <option value="">-- Выберите тему --</option>
                             {topics.map((t: any) => (
@@ -115,21 +115,21 @@ export default function CreateQuestionPage() {
                     </div>
 
                     {/* 2. Text */}
-                    <div className="p-5 rounded-3xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 shadow-lg group focus-within:border-blue-500/30 transition-colors">
-                        <label className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-3 block">2. Содержание</label>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">2. Текст вопроса</label>
                         <textarea 
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            placeholder="Опишите саму суть вопроса..."
-                            className="w-full bg-transparent border-none outline-none min-h-[80px] h-auto resize-none text-base placeholder:text-gray-600 font-medium"
+                            placeholder="Опишите суть вопроса..."
+                            className="w-full bg-[#1c1c28] rounded-xl px-4 py-4 text-sm border border-white/5 outline-none min-h-[100px] h-auto resize-y font-medium focus:border-blue-500/50 transition-colors placeholder:text-gray-600"
                         />
                     </div>
 
-                    {/* 3. Image Upload (Telegra.ph WOW effect) */}
-                    <div className="p-5 rounded-3xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 shadow-lg">
-                        <label className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-3 block flex items-center justify-between">
-                            3. Медиа (Файл)
-                            {imageUrl && <button onClick={() => setImageUrl('')} className="text-red-400 flex items-center gap-1"><X size={12}/> удалить</button>}
+                    {/* 3. Image Upload */}
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider flex items-center justify-between">
+                            3. Медиа (опционально)
+                            {imageUrl && <button onClick={() => setImageUrl('')} className="text-red-400 font-normal hover:text-red-300 transition-colors">удалить</button>}
                         </label>
                         
                         <input 
@@ -141,54 +141,54 @@ export default function CreateQuestionPage() {
                         />
 
                         {imageUrl ? (
-                            <div className="relative w-full h-40 rounded-2xl overflow-hidden group border border-white/10">
-                                <img src={imageUrl} alt="Uploaded" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                            <div className="relative w-full h-48 rounded-xl overflow-hidden group border border-white/10">
+                                <img src={imageUrl} alt="Uploaded" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                         ) : (
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isUploading}
-                                className="w-full h-32 rounded-2xl border-2 border-dashed border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center gap-3 text-gray-500 hover:text-blue-400 active:scale-95 disabled:opacity-50"
+                                className="w-full h-24 rounded-xl border border-dashed border-gray-600 hover:border-gray-400 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-gray-200 active:scale-[0.98] disabled:opacity-50"
                             >
-                                {isUploading ? <Loader2 size={32} className="animate-spin text-blue-500" /> : <UploadCloud size={32} />}
-                                <span className="text-xs font-bold uppercase tracking-wider">{isUploading ? 'Загрузка медиа...' : 'Прикрепить картинку'}</span>
+                                {isUploading ? <Loader2 size={24} className="animate-spin text-blue-500" /> : <UploadCloud size={24} />}
+                                <span className="text-xs font-medium">{isUploading ? 'Загрузка файла...' : 'Прикрепить изображение'}</span>
                             </button>
                         )}
                     </div>
                 </div>
 
                 {/* 4. Options */}
-                <div className="p-5 rounded-3xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 shadow-lg">
-                    <label className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em] mb-4 flex justify-between items-center">
+                <div className="flex flex-col gap-3 mt-4">
+                    <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider flex justify-between items-center">
                         4. Варианты Ответа
-                        <span className="text-gray-500 text-[9px]">ОТМЕТЬТЕ ПРАВИЛЬНЫЙ</span>
+                        <span className="text-gray-500 lowercase font-normal italic">отметьте правильный</span>
                     </label>
                     
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {options.map((opt, i) => (
                             <div key={i} className={cn(
-                                "flex items-center gap-3 p-2 rounded-2xl border transition-all duration-300",
-                                opt.is_correct ? "border-green-500/50 bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.1)]" : "border-white/5 bg-black/20"
+                                "flex items-center gap-3 p-2 rounded-xl transition-colors duration-200",
+                                opt.is_correct ? "bg-green-500/10 border border-green-500/20" : "bg-[#1c1c28] border border-white/5"
                             )}>
                                 <button 
                                     onClick={() => setCorrectOption(i)}
                                     className={cn(
-                                        "w-10 h-10 shrink-0 flex items-center justify-center rounded-xl transition-all duration-300",
-                                        opt.is_correct ? "bg-green-500 text-white shadow-lg shadow-green-500/40 scale-110" : "bg-white/5 text-gray-600 hover:bg-white/10"
+                                        "w-8 h-8 shrink-0 flex items-center justify-center rounded-lg transition-colors",
+                                        opt.is_correct ? "bg-green-500 text-white" : "text-gray-500 hover:bg-white/5"
                                     )}
                                 >
-                                    {opt.is_correct ? <CheckCircle size={18} strokeWidth={3} /> : <Circle size={18} />}
+                                    {opt.is_correct ? <CheckCircle size={18} /> : <Circle size={18} />}
                                 </button>
                                 <input 
                                     value={opt.content}
                                     onChange={(e) => handleOptionChange(i, e.target.value)}
                                     placeholder={`Вариант ${i + 1}`}
-                                    className="flex-1 bg-transparent outline-none border-none text-sm font-medium h-10 px-2"
+                                    className="flex-1 bg-transparent outline-none border-none text-sm font-medium"
                                 />
                                 <button 
                                     onClick={() => removeOption(i)}
-                                    className="w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-red-500/40 hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                                    className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -198,9 +198,9 @@ export default function CreateQuestionPage() {
 
                     <button 
                         onClick={addOption}
-                        className="w-full py-4 mt-4 rounded-xl text-blue-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-500/10 active:scale-95 transition-all"
+                        className="w-full py-3 mt-2 rounded-xl border border-dashed border-gray-600 text-gray-400 text-sm font-medium flex items-center justify-center gap-2 hover:bg-white/5 hover:border-gray-400 transition-colors active:scale-[0.98]"
                     >
-                        <Plus size={16} /> Ещё вариант
+                        <Plus size={16} /> Добавить вариант
                     </button>
                 </div>
 
@@ -210,10 +210,10 @@ export default function CreateQuestionPage() {
                     disabled={!content || !topicId || options.some(opt => !opt.content) || createMutation.isPending}
                     onClick={() => createMutation.mutate({ content, topic_id: topicId, image_url: imageUrl, options })}
                     className={cn(
-                        "fixed bottom-20 left-4 right-4 z-50 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 shadow-2xl transition-all duration-300",
+                        "fixed bottom-6 left-6 right-6 z-50 py-3.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200",
                         !content || !topicId || options.some(opt => !opt.content) || createMutation.isPending 
-                            ? "bg-white/5 text-gray-500 border border-white/5" 
-                            : "bg-blue-600 text-white shadow-blue-600/40 active:scale-95"
+                            ? "bg-white/5 text-gray-500 cursor-not-allowed" 
+                            : "bg-white text-black hover:bg-gray-100 active:scale-[0.98]"
                     )}
                 >
                     {createMutation.isPending ? <Loader2 size={18} className="animate-spin"/> : <Save size={18} />}

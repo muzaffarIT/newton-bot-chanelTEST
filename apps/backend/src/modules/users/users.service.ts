@@ -54,7 +54,7 @@ export class UsersService {
             }
         });
 
-        this.eventEmitter.emit('user.registered', user);
+        this.eventEmitter.emit('user.registered', new UserRegisteredEvent(user.id, user.telegram_id));
         return user;
     }
 

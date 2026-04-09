@@ -160,12 +160,22 @@ export class BotUpdate implements OnModuleInit {
 
     @Command('add_channel')
     async onAddChannel(@Ctx() ctx: BotContext) {
-        const adminUser = await this.prisma.adminUser.findUnique({
-            where: { telegram_id: ctx.from.id.toString() }
-        });
+        const ownerId = process.env.OWNER_TELEGRAM_ID;
+        const currentId = ctx.from.id.toString();
+        
+        let isAdmin = currentId === ownerId;
 
-        if (!adminUser || !adminUser.is_active) {
-            await ctx.reply('⚠️ Только администраторы могут добавлять каналы.');
+        if (!isAdmin) {
+            const adminUser = await this.prisma.adminUser.findUnique({
+                where: { telegram_id: currentId }
+            });
+            if (adminUser?.is_active) {
+                isAdmin = true;
+            }
+        }
+
+        if (!isAdmin) {
+            await ctx.reply('⚠️ Только администраторы могут добавлять каналы. Пожалуйста, убедитесь что ваш Telegram ID привязан к профилю администратора.');
             return;
         }
 

@@ -34,7 +34,7 @@ export default function SettingsPage() {
 
     const createTopicMut = useMutation({
         mutationFn: async () => {
-            await api.post('/api/admin/topics', { name: topicName, description: topicDesc })
+            await api.post('/api/admin/topics', { name: topicName, description: topicDesc || undefined })
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['topics'] })

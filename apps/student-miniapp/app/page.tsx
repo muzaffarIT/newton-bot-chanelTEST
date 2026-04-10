@@ -10,7 +10,7 @@ import { useI18n } from '@/context/I18nContext'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
-const spring = { type: 'spring', stiffness: 400, damping: 28 }
+const spring = { type: 'spring', stiffness: 400, damping: 28 } as const
 
 function StatCard({ label, value, icon: Icon, color, delay = 0 }: any) {
     return (

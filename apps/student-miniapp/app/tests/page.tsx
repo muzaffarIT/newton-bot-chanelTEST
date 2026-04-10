@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const spring = { type: 'spring', stiffness: 400, damping: 30 }
+const spring = { type: 'spring', stiffness: 400, damping: 30 } as const
 
 export default function TestsPage() {
     const { t } = useI18n()

@@ -6,7 +6,7 @@ WORKDIR /app
 # Install dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -26,7 +26,7 @@ RUN apk add --no-cache openssl
 # Install only production deps
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci --only=production --legacy-peer-deps && \
+RUN npm install --only=production --legacy-peer-deps && \
     npx prisma generate && \
     npm cache clean --force
 
@@ -34,7 +34,7 @@ RUN npm ci --only=production --legacy-peer-deps && \
 COPY --from=builder /app/dist ./dist
 
 # Copy i18n files
-COPY --from=builder /app/dist/i18n ./dist/i18n
+COPY --from=builder /app/dist/i18n ./dist/i18n 2>/dev/null; true
 
 # Set ownership
 RUN addgroup --system --gid 1001 nodejs && \

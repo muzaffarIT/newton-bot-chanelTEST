@@ -1,4 +1,4 @@
-import { Update, Ctx, Start, Action, Command, Help, Hears } from 'nestjs-telegraf';
+import { Update, Ctx, Start, Action, Command, Help, Hears, On } from 'nestjs-telegraf';
 import { Context, Scenes, Markup } from 'telegraf';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectBot } from 'nestjs-telegraf';
@@ -209,21 +209,21 @@ export class BotUpdate implements OnModuleInit {
         await ctx.reply('✅ Til muvaffaqiyatli O\'zbek tiliga o\'zgartirildi.\nMenyuni yangilash uchun /start dan foydalaning.');
     }
 
+    /** Check if the given telegram user ID belongs to an admin */
+    private async isAdminUser(telegramId: string): Promise<boolean> {
+        if (telegramId === this.OWNER_TELEGRAM_ID) return true;
+        const envOwnerId = process.env.OWNER_TELEGRAM_ID;
+        if (envOwnerId && telegramId === envOwnerId) return true;
+        const adminUser = await this.prisma.adminUser.findUnique({
+            where: { telegram_id: telegramId },
+        });
+        return !!(adminUser?.is_active);
+    }
+
     @Command('add_channel')
     async onAddChannel(@Ctx() ctx: BotContext) {
-        const ownerId = process.env.OWNER_TELEGRAM_ID;
         const currentId = ctx.from.id.toString();
-        
-        let isAdmin = currentId === ownerId;
-
-        if (!isAdmin) {
-            const adminUser = await this.prisma.adminUser.findUnique({
-                where: { telegram_id: currentId }
-            });
-            if (adminUser?.is_active) {
-                isAdmin = true;
-            }
-        }
+        const isAdmin = await this.isAdminUser(currentId);
 
         if (!isAdmin) {
             await ctx.reply('⚠️ Только администраторы могут добавлять каналы. Пожалуйста, убедитесь что ваш Telegram ID привязан к профилю администратора.');
@@ -285,28 +285,56 @@ export class BotUpdate implements OnModuleInit {
         );
     }
 
-    @On('chat_shared')
-    async onChatShared(@Ctx() ctx: BotContext) {
-        // @ts-ignore
-        const chatShared = ctx.message?.chat_shared;
-        if (!chatShared) return;
+    @Command('post')
+    async onPost(@Ctx() ctx: BotContext) {
+        const currentId = ctx.from.id.toString();
+        const isAdmin = await this.isAdminUser(currentId);
 
-        const chatId = chatShared.chat_id.toString();
-
-        try {
-            await this.prisma.channel.upsert({
-                where: { telegram_id: chatId },
-                update: { is_active: true },
-                create: { telegram_id: chatId, name: `Channel ${chatId}`, is_active: true }
-            });
-
-            await ctx.reply(
-                `✅ Канал успешно добавлен в базу!\n\nID: \`${chatId}\`\n\n_Не забудьте обновить страницу админ панели. Название канала обновится автоматически при первом сообщении, или вы можете задать его вручную в панели._`,
-                { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } }
-            );
-        } catch (e) {
-            await ctx.reply('❌ Произошла ошибка при сохранении канала: ' + e.message);
+        if (!isAdmin) {
+            await ctx.reply('⚠️ Только администраторы могут публиковать посты.');
+            return;
         }
+
+        await ctx.scene.enter('POST_SCENE');
+    }
+
+    // Handle the chat_shared service message (Telegraf v4 sends it as a normal message with type service)
+    @On('message')
+    async onMessage(@Ctx() ctx: BotContext) {
+        // @ts-ignore
+        const msg = ctx.message as any;
+
+        // Handle chat_shared service message from KeyboardButtonRequestChat
+        if (msg?.chat_shared) {
+            const chatShared = msg.chat_shared;
+            const chatId = chatShared.chat_id.toString();
+
+            try {
+                // Try to get the actual channel title from Telegram
+                let channelTitle = `Channel ${chatId}`;
+                try {
+                    const chat = await this.bot.telegram.getChat(chatId);
+                    // @ts-ignore
+                    channelTitle = chat.title || channelTitle;
+                } catch (_) {}
+
+                await this.prisma.channel.upsert({
+                    where: { telegram_id: chatId },
+                    update: { is_active: true, name: channelTitle },
+                    create: { telegram_id: chatId, name: channelTitle, is_active: true },
+                });
+
+                await ctx.reply(
+                    `✅ Канал успешно добавлен!\n\n📢 *${channelTitle}*\nID: \`${chatId}\`\n\n_Обновите страницу Настроек в Админ Панели._`,
+                    { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } },
+                );
+            } catch (e) {
+                await ctx.reply('❌ Произошла ошибка при сохранении канала: ' + e.message);
+            }
+            return;
+        }
+
+        // Ignore all other unhandled messages silently
     }
 
     @Help()

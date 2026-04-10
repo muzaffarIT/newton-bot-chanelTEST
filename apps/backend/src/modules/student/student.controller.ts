@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
 import { StudentService } from './student.service';
 import { StudentJwtAuthGuard } from '../auth/student-jwt.guard';
 
@@ -50,5 +50,29 @@ export class StudentController {
     @Post('leads/consultation')
     requestConsultation(@Request() req, @Body() dto: { courseType: 'ONLINE' | 'OFFLINE' }) {
         return this.studentService.requestConsultation(req.user.sub, dto.courseType);
+    }
+
+    @Patch('profile')
+    updateProfile(
+        @Request() req,
+        @Body() dto: {
+            first_name?: string;
+            last_name?: string;
+            phone?: string;
+            grade?: string;
+        },
+    ) {
+        return this.studentService.updateProfile(req.user.sub, dto);
+    }
+
+    @Patch('profile/language')
+    updateLanguage(
+        @Request() req,
+        @Body() dto: { language_code: string },
+    ) {
+        if (!['ru', 'uz'].includes(dto.language_code)) {
+            throw new HttpException('Invalid language code', HttpStatus.BAD_REQUEST);
+        }
+        return this.studentService.updateProfile(req.user.sub, { language_code: dto.language_code });
     }
 }

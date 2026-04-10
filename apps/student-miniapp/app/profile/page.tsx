@@ -1,85 +1,276 @@
 'use client'
 
 import { BottomNav } from '@/components/BottomNav'
-import { User, Phone, MapPin, GraduationCap, Settings, LogOut, ChevronRight, Globe, Star } from 'lucide-react'
-import { clearToken, fetchProfile } from '@/lib/api'
-import { useQuery } from '@tanstack/react-query'
+import { User, Phone, GraduationCap, Settings, LogOut, Globe, Star, Edit2, Check, X, Loader2 } from 'lucide-react'
+import { clearToken, fetchProfile, updateProfile, updateLanguage } from '@/lib/api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useI18n } from '@/context/I18nContext'
-import { api } from '@/lib/api'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
+
+const spring = { type: 'spring', stiffness: 380, damping: 30 } as const
+
+/** Inline editable field row */
+function EditableField({
+    icon: Icon,
+    label,
+    value,
+    field,
+    placeholder,
+    inputType = 'text',
+    onSave,
+}: {
+    icon: any
+    label: string
+    value: string
+    field: string
+    placeholder?: string
+    inputType?: string
+    onSave: (field: string, val: string) => Promise<void>
+}) {
+    const [editing, setEditing] = useState(false)
+    const [draft, setDraft] = useState(value)
+    const [saving, setSaving] = useState(false)
+
+    const handleSave = async () => {
+        if (!draft.trim() && field === 'first_name') return
+        setSaving(true)
+        try {
+            await onSave(field, draft.trim())
+            setEditing(false)
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handleCancel = () => {
+        setDraft(value)
+        setEditing(false)
+    }
+
+    return (
+        <div className="flex items-start gap-4 p-4 group">
+            <div className="w-10 h-10 rounded-[12px] bg-blue-50 dark:bg-white/5 flex items-center justify-center text-blue-600 dark:text-gray-400 shrink-0 mt-0.5">
+                <Icon size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">{label}</p>
+
+                <AnimatePresence mode="wait">
+                    {editing ? (
+                        <motion.div
+                            key="editing"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="flex items-center gap-2"
+                        >
+                            <input
+                                type={inputType}
+                                value={draft}
+                                onChange={(e) => setDraft(e.target.value)}
+                                placeholder={placeholder || label}
+                                autoFocus
+                                className="flex-1 bg-transparent outline-none border-b-2 border-blue-500 text-[15px] font-semibold text-white pb-1 placeholder:text-gray-600"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSave()
+                                    if (e.key === 'Escape') handleCancel()
+                                }}
+                            />
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center shrink-0"
+                            >
+                                {saving ? (
+                                    <Loader2 size={12} className="animate-spin text-white" />
+                                ) : (
+                                    <Check size={12} className="text-white" />
+                                )}
+                            </button>
+                            <button
+                                onClick={handleCancel}
+                                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center shrink-0"
+                            >
+                                <X size={12} className="text-gray-400" />
+                            </button>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="display"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex items-center gap-2"
+                        >
+                            <p className={cn(
+                                "text-[15px] font-semibold flex-1",
+                                value ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-600 italic"
+                            )}>
+                                {value || `Не указано`}
+                            </p>
+                            <button
+                                onClick={() => { setDraft(value); setEditing(true) }}
+                                className="w-7 h-7 rounded-full opacity-0 group-hover:opacity-100 active:opacity-100 bg-white/5 flex items-center justify-center transition-opacity"
+                            >
+                                <Edit2 size={12} className="text-gray-500" />
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
+    )
+}
 
 export default function ProfilePage() {
     const { t, lang, setLang } = useI18n()
-    const { data: profile, refetch } = useQuery({ queryKey: ['profile'], queryFn: fetchProfile })
+    const queryClient = useQueryClient()
+    const { data: profile, isLoading } = useQuery({ queryKey: ['profile'], queryFn: fetchProfile })
+    const [langSaving, setLangSaving] = useState(false)
+    const [saveSuccess, setSaveSuccess] = useState(false)
 
     const handleLogout = () => {
         clearToken()
         window.location.reload()
     }
 
-    const handleLanguageSwitch = async () => {
-        const newLang = lang === 'ru' ? 'uz' : 'ru'
-        setLang(newLang)
-        // Opt: await api.post('/api/student/profile/language', { language: newLang })
-        alert(newLang === 'ru' ? 'Язык изменен на Русский' : 'Til o\'zbek tiliga o\'zgartirildi')
-        refetch()
+    const handleSaveField = async (field: string, value: string) => {
+        await updateProfile({ [field]: value } as any)
+        queryClient.invalidateQueries({ queryKey: ['profile'] })
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 2000)
     }
 
-    const menuItems = [
-        { label: t('profile.name'), icon: User, value: profile ? `${profile.first_name} ${profile.last_name || ''}` : '...' },
-        { label: t('profile.phone'), icon: Phone, value: profile?.phone || '...' },
-        { label: t('profile.grade'), icon: GraduationCap, value: profile?.grade ? `${profile.grade} Grade` : '...' },
-        { label: t('profile.direction'), icon: MapPin, value: profile?.direction?.name || '...' },
-        { label: t('profile.lang'), icon: Globe, value: lang === 'uz' ? 'O\'zbekcha' : 'Русский', hasArrow: true, onClick: handleLanguageSwitch },
-    ]
+    const handleLanguageSwitch = async () => {
+        const newLang = lang === 'ru' ? 'uz' : 'ru'
+        setLangSaving(true)
+        try {
+            await updateLanguage(newLang)
+            setLang(newLang)
+            queryClient.invalidateQueries({ queryKey: ['profile'] })
+        } finally {
+            setLangSaving(false)
+        }
+    }
+
+    const pts = profile?.points_balance || 0
 
     return (
         <main className="pb-24 pt-6 px-5 page-fade-in text-tg-text">
+            {/* Save success flash */}
+            <AnimatePresence>
+                {saveSuccess && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="fixed top-4 left-4 right-4 z-50 p-3 rounded-xl flex items-center gap-2 text-sm font-semibold"
+                        style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}
+                    >
+                        <Check size={16} /> Данные сохранены
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Avatar */}
             <header className="flex flex-col items-center mb-8">
-                <div className="w-24 h-24 bg-gradient-to-tr from-tg-button to-blue-400 rounded-3xl flex items-center justify-center text-4xl text-white font-bold shadow-xl mb-4">
-                    {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}
+                <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-violet-600 rounded-3xl flex items-center justify-center text-4xl text-white font-bold shadow-xl mb-4 relative">
+                    {isLoading ? (
+                        <div className="skeleton w-24 h-24 rounded-3xl absolute inset-0" />
+                    ) : (
+                        <>
+                            {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0) || ''}
+                        </>
+                    )}
                 </div>
-                <h1 className="text-xl font-bold">{profile?.first_name} {profile?.last_name}</h1>
-                <p className="text-tg-hint text-sm">Student ID: #{profile?.id?.slice(-5)}</p>
-                <div className="mt-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-5 py-2 rounded-full flex items-center gap-2">
-                    <Star size={16} fill="currentColor" />
-                    <span className="font-bold tracking-widest">{profile?.points_balance || 0} БАЛЛОВ</span>
+                <h1 className="text-xl font-bold">
+                    {isLoading ? <span className="skeleton w-32 h-6 block rounded-lg" /> : `${profile?.first_name || ''} ${profile?.last_name || ''}`}
+                </h1>
+                <p className="text-gray-500 text-sm mt-0.5">Student ID: #{profile?.id?.slice(-5)}</p>
+                <div className="mt-4 px-5 py-2 rounded-full flex items-center gap-2" style={{ background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.2)' }}>
+                    <Star size={16} className="text-amber-400" fill="currentColor" />
+                    <span className="font-black text-amber-400 tracking-widest text-[15px]">{pts} БАЛЛОВ</span>
                 </div>
             </header>
 
-            <div className="space-y-4 mb-8">
-                <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">{t('profile.info')}</h2>
+            {/* Profile Info — Editable Fields */}
+            <div className="space-y-3 mb-8">
+                <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">
+                    {t('profile.info')}
+                </h2>
                 <div className="bg-white dark:bg-[#15151e] border border-gray-100 dark:border-white/5 rounded-[24px] divide-y divide-gray-100 dark:divide-white/5 overflow-hidden shadow-sm">
-                    {menuItems.map((item, i) => (
-                        <div 
-                            key={i} 
-                            onClick={item.onClick}
-                            className={item.onClick ? "cursor-pointer flex items-center gap-4 p-4 active:bg-gray-50 dark:active:bg-white/5 transition-colors" : "flex items-center gap-4 p-4"}
-                        >
-                            <div className="w-10 h-10 rounded-[12px] bg-blue-50 dark:bg-white/5 flex items-center justify-center text-blue-600 dark:text-gray-400">
-                                <item.icon size={18} />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{item.label}</p>
-                                <p className="text-[15px] font-semibold text-gray-900 dark:text-white">{item.value}</p>
-                            </div>
-                            {item.hasArrow && <ChevronRight size={18} className="text-gray-400" />}
-                        </div>
-                    ))}
+                    <EditableField
+                        icon={User}
+                        label="Имя"
+                        field="first_name"
+                        value={profile?.first_name || ''}
+                        placeholder="Введите имя"
+                        onSave={handleSaveField}
+                    />
+                    <EditableField
+                        icon={User}
+                        label="Фамилия"
+                        field="last_name"
+                        value={profile?.last_name || ''}
+                        placeholder="Введите фамилию"
+                        onSave={handleSaveField}
+                    />
+                    <EditableField
+                        icon={Phone}
+                        label="Телефон"
+                        field="phone"
+                        value={profile?.phone || ''}
+                        placeholder="+998 XX XXX XX XX"
+                        inputType="tel"
+                        onSave={handleSaveField}
+                    />
+                    <EditableField
+                        icon={GraduationCap}
+                        label="Класс"
+                        field="grade"
+                        value={profile?.grade || ''}
+                        placeholder="Напр., 10"
+                        onSave={handleSaveField}
+                    />
                 </div>
+                <p className="text-[10px] text-gray-500 ml-4">Нажмите на поле чтобы редактировать</p>
             </div>
 
-            <div className="space-y-4">
-                <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">{t('profile.settings')}</h2>
+            {/* Settings */}
+            <div className="space-y-3">
+                <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">
+                    {t('profile.settings')}
+                </h2>
                 <div className="bg-white dark:bg-[#15151e] border border-gray-100 dark:border-white/5 rounded-[24px] space-y-1 p-2 shadow-sm">
-                    <button 
-                        onClick={() => alert(lang === 'ru' ? 'Настройки в разработке' : 'Sozlamalar ishlab chiqilmoqda')}
-                        className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-gray-50 dark:active:bg-white/5 transition-colors text-left text-[15px] font-semibold text-gray-900 dark:text-white"
+
+                    {/* Language switch */}
+                    <button
+                        onClick={handleLanguageSwitch}
+                        disabled={langSaving}
+                        className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-gray-50 dark:active:bg-white/5 transition-colors text-left disabled:opacity-60"
                     >
-                        <div className="w-10 h-10 rounded-[12px] bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-500">
-                            <Settings size={18} />
+                        <div className="w-10 h-10 rounded-[12px] bg-blue-50 dark:bg-white/5 flex items-center justify-center text-blue-500 dark:text-blue-400">
+                            <Globe size={18} />
                         </div>
-                        {t('profile.app_settings')}
+                        <div className="flex-1">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Язык интерфейса</p>
+                            <p className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                                {lang === 'ru' ? '🇷🇺 Русский' : "🇺🇿 O'zbek tili"}
+                            </p>
+                        </div>
+                        {langSaving ? (
+                            <Loader2 size={16} className="text-gray-400 animate-spin" />
+                        ) : (
+                            <span className="text-[11px] text-gray-500 font-semibold border border-gray-200 dark:border-white/10 px-2 py-1 rounded-lg">
+                                {lang === 'ru' ? 'Switch to UZ' : "RU га o'tish"}
+                            </span>
+                        )}
                     </button>
+
+                    {/* Logout */}
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-red-50 dark:active:bg-red-500/10 transition-colors text-left text-[15px] font-bold text-red-500"

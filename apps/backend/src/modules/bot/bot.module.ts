@@ -6,9 +6,11 @@ import { session } from 'telegraf';
 import { UsersModule } from '../users/users.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { SchedulerModule } from '../scheduler/scheduler.module';
 import { BotUpdate } from './bot.update';
 import { RegistrationWizard } from './scenes/registration.scene';
 import { TestScene } from './scenes/test.scene';
+import { PostScene } from './scenes/post.scene';
 
 @Module({
     imports: [
@@ -29,11 +31,13 @@ import { TestScene } from './scenes/test.scene';
         UsersModule,
         SessionsModule, // To access startTestSession inside TestScene
         PrismaModule,   // To dynamically fetch Directions in RegistrationWizard
+        SchedulerModule, // For PostScene to publish directly
     ],
     providers: [
         BotUpdate,
         RegistrationWizard,
         TestScene,
+        PostScene,
     ],
 })
 export class BotModule { }

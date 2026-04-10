@@ -274,11 +274,11 @@ model ScheduledPost {
   publish_at   DateTime
   message_tmpl String
   language     String   @default("ru")
-  status       String   @default("PENDING") // PENDING, PUBLISHED, FAILED
+  status       String   @default("PENDING") // PENDING, PUBLISHED, FAILED, CANCELLED
   error_log    String?
   created_at   DateTime @default(now())
 
-  test    Test    @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  test    Test?   @relation(fields: [test_id], references: [id], onDelete: Cascade)
   channel Channel @relation(fields: [channel_id], references: [id], onDelete: Cascade)
 
   @@map("scheduled_posts")

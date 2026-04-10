@@ -95,4 +95,34 @@ export class StudentService {
         this.eventEmitter.emit('consultation.requested', new ConsultationRequestedEvent(userId, message));
         return { success: true };
     }
+
+    async updateProfile(userId: string, data: {
+        first_name?: string;
+        last_name?: string;
+        phone?: string;
+        grade?: string;
+        language_code?: string;
+    }) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+        // Only update provided fields
+        const updateData: any = {};
+        if (data.first_name !== undefined) updateData.first_name = data.first_name.trim();
+        if (data.last_name !== undefined) updateData.last_name = data.last_name.trim() || null;
+        if (data.phone !== undefined) updateData.phone = data.phone.trim() || null;
+        if (data.grade !== undefined) updateData.grade = data.grade.trim() || null;
+        if (data.language_code !== undefined) updateData.language_code = data.language_code;
+
+        if (Object.keys(updateData).length === 0) {
+            return user;
+        }
+
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            include: { direction: true },
+        });
+    }
 }
+

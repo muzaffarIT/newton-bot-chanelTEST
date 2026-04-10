@@ -100,12 +100,27 @@ export async function requestConsultation(courseType: 'ONLINE' | 'OFFLINE') {
 
 // ─── Shop / Rewards ───────────────────────────────────────────────────────────
 export async function fetchRewards() {
-    const { data } = await api.get('/api/student/rewards')
+    const { data } = await api.get('/api/student/store/rewards')
     return data
 }
 
 export async function redeemReward(rewardId: string) {
-    const { data } = await api.post('/api/student/rewards/redeem', { rewardId })
+    const { data } = await api.post(`/api/student/store/redeem/${rewardId}`, {})
     return data
 }
 
+// ─── Profile Update ───────────────────────────────────────────────────────────
+export async function updateProfile(fields: {
+    first_name?: string
+    last_name?: string
+    phone?: string
+    grade?: string
+}) {
+    const { data } = await api.patch('/api/student/profile', fields)
+    return data
+}
+
+export async function updateLanguage(language_code: string) {
+    const { data } = await api.patch('/api/student/profile/language', { language_code })
+    return data
+}

@@ -92,6 +92,33 @@ body {
     .field-input::placeholder { color: var(--text-muted); }
 
     select.field-input option { background: #13132a; color: var(--text); }
+
+    .input {
+        width: 100%;
+        background: rgba(255,255,255,0.04);
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 14px;
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s;
+    }
+    .input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+    }
+    .input::placeholder { color: var(--text-muted); }
+    textarea.input { resize: vertical; }
+
+    .label-xs {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+    }
 }
 
 /* Badges */

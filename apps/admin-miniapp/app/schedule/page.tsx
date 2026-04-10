@@ -17,6 +17,7 @@ export default function SchedulePage() {
     const [publishNow, setPublishNow] = useState(false)
     const [scheduledAt, setScheduledAt] = useState('')
     const [language, setLanguage] = useState<'ru' | 'uz'>('ru')
+    const [messageText, setMessageText] = useState('')
 
     // Data states
     const [posts, setPosts] = useState<any[]>([])
@@ -59,9 +60,10 @@ export default function SchedulePage() {
             
             await api.post('/api/admin/scheduler/schedule', {
                 channelId: selectedChannel,
-                testId: selectedTest,
+                testId: selectedTest || undefined,
                 publishNow,
                 language,
+                messageText: messageText || undefined,
                 publishAt: publishNow || !scheduledAt ? undefined : new Date(scheduledAt).toISOString()
             })
             
@@ -141,6 +143,14 @@ export default function SchedulePage() {
                         ))}
                     </div>
 
+                    <label className="text-xs text-gray-400 mb-1 block">Текст сообщения {selectedTest ? '(Опционально)' : '(Обязательно)'}</label>
+                    <textarea
+                        className="w-full bg-white/5 rounded-xl px-3 py-2 text-sm mb-3 border border-white/10 outline-none resize-none h-24"
+                        placeholder="Введите текст сообщения..."
+                        value={messageText}
+                        onChange={e => setMessageText(e.target.value)}
+                    />
+
                     {!publishNow && (
                         <>
                             <label className="text-xs text-gray-400 mb-1 block">Дата и время</label>
@@ -155,7 +165,7 @@ export default function SchedulePage() {
 
                     <button
                         onClick={onSubmit}
-                        disabled={!selectedChannel || !selectedTest || isSubmitting}
+                        disabled={!selectedChannel || (!selectedTest && !messageText) || isSubmitting}
                         className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 mt-2"
                     >
                         {isSubmitting ? 'Отправка API...' : publishNow ? '🚀 Опубликовать' : '📅 Запланировать'}
@@ -175,7 +185,7 @@ export default function SchedulePage() {
                             <div key={post.id} className="card">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-sm truncate">{post.test?.title}</p>
+                                        <p className="font-medium text-sm truncate">{post.test?.title || 'Обычный пост (без теста)'}</p>
                                         <p className="text-xs text-gray-400 mt-0.5">
                                             {new Date(post.publish_at).toLocaleString('ru-RU')}
                                         </p>

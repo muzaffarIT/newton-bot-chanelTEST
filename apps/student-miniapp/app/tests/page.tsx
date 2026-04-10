@@ -2,7 +2,7 @@
 
 import { BottomNav } from '@/components/BottomNav'
 import { BookOpen, Clock, ChevronRight, Search, Play } from 'lucide-react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAvailableTests, startSession } from '@/lib/api'
 import { useI18n } from '@/context/I18nContext'
 import { useRouter } from 'next/navigation'
@@ -16,9 +16,12 @@ export default function TestsPage() {
     
     const { data: tests, isLoading } = useQuery({ queryKey: ['available-tests'], queryFn: fetchAvailableTests })
 
+    const queryClient = useQueryClient()
+
     const startMutation = useMutation({
         mutationFn: startSession,
         onSuccess: (data, testId) => {
+            queryClient.invalidateQueries({ queryKey: ['active-session'] })
             router.push(`/tests/${testId}/play`)
         },
         onError: (err: any) => {

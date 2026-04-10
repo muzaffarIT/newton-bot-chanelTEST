@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 
 export interface PostJobPayload {
     channelId: string;
-    testId: string;
+    testId?: string;
     messageText: string;
     scheduledPostId: string;
     language: string;
@@ -25,7 +25,8 @@ export class SchedulerService {
     /**
      * Generates a deep-link URL for a given test.
      */
-    generateDeepLink(testId: string): string {
+    generateDeepLink(testId?: string): string {
+        if (!testId) return '';
         const botUsername = this.config.get<string>('BOT_USERNAME') || 'NewtonAcademyBot';
         return `https://t.me/${botUsername}?start=test_${testId}`;
     }
@@ -34,11 +35,14 @@ export class SchedulerService {
      * Auto-generates a post message from test metadata.
      * Uses the stored channel language or defaults to Russian.
      */
-    async generateMessageTemplate(testId: string, lang: string = 'ru'): Promise<string> {
+    async generateMessageTemplate(testId?: string, lang: string = 'ru'): Promise<string> {
+        const isRu = lang === 'ru';
+        if (!testId) return isRu ? 'Ваш текст...' : 'Sizning matningiz...';
+        
         const test = await this.prisma.test.findUnique({ where: { id: testId } });
         if (!test) throw new NotFoundException(`Test ${testId} not found`);
 
-        const isRu = lang === 'ru';
+        
         
         return [
             isRu ? `📚 *Newton Academy — Диагностический тест*` : `📚 *Newton Academy — Diagnostika testi*`,
@@ -57,7 +61,7 @@ export class SchedulerService {
      */
     async scheduleTestPost(options: {
         channelId: string;
-        testId: string;
+        testId?: string;
         messageText?: string;
         publishAt?: Date;
         publishNow?: boolean;
@@ -66,6 +70,9 @@ export class SchedulerService {
         const { channelId, testId, publishNow } = options;
 
         // Auto-generate message if not provided
+        if (!options.messageText && !testId) {
+            throw new Error('Message text is required when no test is specified');
+        }
         const messageText = options.messageText || await this.generateMessageTemplate(testId);
 
         const publishAt = publishNow ? new Date() : (options.publishAt || new Date());

@@ -23,20 +23,24 @@ export class SchedulerProcessor extends WorkerHost {
         this.logger.log(`Publishing post to channel=${channelId} test=${testId} attempt=${job.attemptsMade + 1} lang=${language}`);
 
         try {
-            // Fetch bot username dynamically for accurate deep-link
-            const botInfo = await this.bot.telegram.getMe();
-            const deepLink = `https://t.me/${botInfo.username}?start=test_${testId}`;
+            let replyMarkup: any = undefined;
 
-            const buttonText = language === 'uz' ? '👉 Testni topshirish' : '👉 Пройти тест';
+            if (testId) {
+                // Fetch bot username dynamically for accurate deep-link
+                const botInfo = await this.bot.telegram.getMe();
+                const deepLink = `https://t.me/${botInfo.username}?start=test_${testId}`;
+                const buttonText = language === 'uz' ? '👉 Testni topshirish' : '👉 Пройти тест';
+                replyMarkup = Markup.inlineKeyboard([
+                    [Markup.button.url(buttonText, deepLink)],
+                ]).reply_markup;
+            }
 
             await this.bot.telegram.sendMessage(
                 channelId,
                 messageText,
                 {
                     parse_mode: 'Markdown',
-                    reply_markup: Markup.inlineKeyboard([
-                        [Markup.button.url(buttonText, deepLink)],
-                    ]).reply_markup,
+                    ...(replyMarkup ? { reply_markup: replyMarkup } : {})
                 }
             );
 

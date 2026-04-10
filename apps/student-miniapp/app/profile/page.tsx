@@ -5,14 +5,23 @@ import { User, Phone, MapPin, GraduationCap, Settings, LogOut, ChevronRight, Glo
 import { clearToken, fetchProfile } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import { useI18n } from '@/context/I18nContext'
+import { api } from '@/lib/api'
 
 export default function ProfilePage() {
-    const { t } = useI18n()
-    const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: fetchProfile })
+    const { t, lang, setLang } = useI18n()
+    const { data: profile, refetch } = useQuery({ queryKey: ['profile'], queryFn: fetchProfile })
 
     const handleLogout = () => {
         clearToken()
         window.location.reload()
+    }
+
+    const handleLanguageSwitch = async () => {
+        const newLang = lang === 'ru' ? 'uz' : 'ru'
+        setLang(newLang)
+        // Opt: await api.post('/api/student/profile/language', { language: newLang })
+        alert(newLang === 'ru' ? 'Язык изменен на Русский' : 'Til o\'zbek tiliga o\'zgartirildi')
+        refetch()
     }
 
     const menuItems = [
@@ -20,7 +29,7 @@ export default function ProfilePage() {
         { label: t('profile.phone'), icon: Phone, value: profile?.phone || '...' },
         { label: t('profile.grade'), icon: GraduationCap, value: profile?.grade ? `${profile.grade} Grade` : '...' },
         { label: t('profile.direction'), icon: MapPin, value: profile?.direction?.name || '...' },
-        { label: t('profile.lang'), icon: Globe, value: profile?.language_code === 'uz' ? 'O\'zbekcha' : 'Русский', hasArrow: true },
+        { label: t('profile.lang'), icon: Globe, value: lang === 'uz' ? 'O\'zbekcha' : 'Русский', hasArrow: true, onClick: handleLanguageSwitch },
     ]
 
     return (
@@ -31,44 +40,51 @@ export default function ProfilePage() {
                 </div>
                 <h1 className="text-xl font-bold">{profile?.first_name} {profile?.last_name}</h1>
                 <p className="text-tg-hint text-sm">Student ID: #{profile?.id?.slice(-5)}</p>
-                <div className="mt-4 bg-tg-button/10 text-tg-button px-4 py-1.5 rounded-full flex items-center gap-2">
-                    <Star size={14} fill="currentColor" />
-                    <span className="font-bold text-sm tracking-widest">{profile?.points_balance || 0} PTS</span>
+                <div className="mt-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-5 py-2 rounded-full flex items-center gap-2">
+                    <Star size={16} fill="currentColor" />
+                    <span className="font-bold tracking-widest">{profile?.points_balance || 0} БАЛЛОВ</span>
                 </div>
             </header>
 
             <div className="space-y-4 mb-8">
-                <h2 className="text-tg-hint text-xs font-bold uppercase tracking-widest ml-1">{t('profile.info')}</h2>
-                <div className="card divide-y divide-white/5 p-0 overflow-hidden">
+                <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">{t('profile.info')}</h2>
+                <div className="bg-white dark:bg-[#15151e] border border-gray-100 dark:border-white/5 rounded-[24px] divide-y divide-gray-100 dark:divide-white/5 overflow-hidden shadow-sm">
                     {menuItems.map((item, i) => (
-                        <div key={i} className="flex items-center gap-4 p-4 active:bg-tg-bg transition-colors">
-                            <div className="w-8 h-8 rounded-lg bg-tg-bg flex items-center justify-center text-tg-hint">
+                        <div 
+                            key={i} 
+                            onClick={item.onClick}
+                            className={item.onClick ? "cursor-pointer flex items-center gap-4 p-4 active:bg-gray-50 dark:active:bg-white/5 transition-colors" : "flex items-center gap-4 p-4"}
+                        >
+                            <div className="w-10 h-10 rounded-[12px] bg-blue-50 dark:bg-white/5 flex items-center justify-center text-blue-600 dark:text-gray-400">
                                 <item.icon size={18} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-[10px] text-tg-hint font-medium uppercase">{item.label}</p>
-                                <p className="text-sm font-semibold">{item.value}</p>
+                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{item.label}</p>
+                                <p className="text-[15px] font-semibold text-gray-900 dark:text-white">{item.value}</p>
                             </div>
-                            {item.hasArrow && <ChevronRight size={18} className="text-tg-hint" />}
+                            {item.hasArrow && <ChevronRight size={18} className="text-gray-400" />}
                         </div>
                     ))}
                 </div>
             </div>
 
             <div className="space-y-4">
-                <h2 className="text-tg-hint text-xs font-bold uppercase tracking-widest ml-1">{t('profile.settings')}</h2>
-                <div className="card space-y-2 p-2">
-                    <button className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-tg-bg transition-colors text-left text-sm font-semibold">
-                        <div className="w-8 h-8 rounded-lg bg-tg-bg flex items-center justify-center text-tg-hint">
+                <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">{t('profile.settings')}</h2>
+                <div className="bg-white dark:bg-[#15151e] border border-gray-100 dark:border-white/5 rounded-[24px] space-y-1 p-2 shadow-sm">
+                    <button 
+                        onClick={() => alert(lang === 'ru' ? 'Настройки в разработке' : 'Sozlamalar ishlab chiqilmoqda')}
+                        className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-gray-50 dark:active:bg-white/5 transition-colors text-left text-[15px] font-semibold text-gray-900 dark:text-white"
+                    >
+                        <div className="w-10 h-10 rounded-[12px] bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-500">
                             <Settings size={18} />
                         </div>
                         {t('profile.app_settings')}
                     </button>
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-tg-bg transition-colors text-left text-sm font-bold text-red-500"
+                        className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-red-50 dark:active:bg-red-500/10 transition-colors text-left text-[15px] font-bold text-red-500"
                     >
-                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
+                        <div className="w-10 h-10 rounded-[12px] bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-500">
                             <LogOut size={18} />
                         </div>
                         {t('profile.logout')}
@@ -76,7 +92,7 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            <p className="text-center text-tg-hint text-[10px] mt-8 opacity-50 font-medium tracking-widest uppercase">
+            <p className="text-center text-gray-400 text-[10px] mt-8 font-medium tracking-widest uppercase">
                 Newton Academy v1.0.0
             </p>
 

@@ -269,7 +269,7 @@ model Channel {
 
 model ScheduledPost {
   id           String   @id @default(uuid())
-  test_id      String
+  test_id      String?
   channel_id   String
   publish_at   DateTime
   message_tmpl String

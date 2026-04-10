@@ -1,4 +1,4 @@
-import { Update, Ctx, Start, Action, On, Command, Help } from 'nestjs-telegraf';
+import { Update, Ctx, Start, Action, On, Command, Help, Hears, Next } from 'nestjs-telegraf';
 import { Context, Scenes, Markup } from 'telegraf';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectBot } from 'nestjs-telegraf';
@@ -110,16 +110,29 @@ export class BotUpdate implements OnModuleInit {
         // User is registered
         const isRu = user.language_code === 'ru';
         const welcomeText = isRu
-            ? `👋 С возвращением, *${user.first_name}*!\n\nВаш учебный кабинет готов. Здесь вы можете:\n🔹 Проходить тесты\n🔹 Смотреть свою статистику\n🔹 Копить баллы\n\n👇 Нажмите кнопку ниже, чтобы войти в кабинет:`
-            : `👋 Xush kelibsiz, *${user.first_name}*!\n\nO'quv kabinetingiz tayyor. Bu yerda siz:\n🔹 Testlarni yechish\n🔹 Statistikangizni ko'rish\n🔹 Ballar yig'ish imkoniga egasiz\n\n👇 Kabinetga kirish uchun pastdagi tugmani bosing:`;
+            ? `👋 Добро пожаловать, *${user.first_name}*!\n\nВаш образовательный профиль Newton Academy успешно активирован. В личном кабинете вам доступны:\n\n🔹 Прохождение модульных тестирований\n🔹 Детальная аналитика прогресса\n🔹 Накопление бонусных баллов\n\n👇 Нажмите на кнопку ниже, чтобы перейти в панель студента:`
+            : `👋 Xush kelibsiz, *${user.first_name}*!\n\nNewton Academy ta'lim profilingiz muvaffaqiyatli faollashtirildi. Shaxsiy kabinetingizda quyidagilar mavjud:\n\n🔹 Modul testlarini o'tish\n🔹 Rivojlanish analitikasi\n🔹 Bonus ballarini yig'ish\n\n👇 Talaba paneliga o'tish uchun quyidagi tugmani bosing:`;
 
         const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
 
+        // We will add a persistent reply keyboard for quick actions
+        const keyboardOptions = isRu 
+            ? [['🎓 Личный кабинет'], ['📝 Пройти тест', '📞 Бесплатная консультация'], ['🌐 Сменить язык']]
+            : [['🎓 Mening kabinetim'], ['📝 Test ishlash', '📞 Bepul konsultatsiya'], ['🌐 Tilni o\'zgartirish']];
+
         await ctx.reply(welcomeText, {
             parse_mode: 'Markdown',
-            ...Markup.inlineKeyboard([
-                [Markup.button.webApp(isRu ? '🎓 Открыть кабинет' : '🎓 Kabinetni ochish', studentUrl || '')]
-            ])
+            reply_markup: {
+                keyboard: keyboardOptions,
+                resize_keyboard: true
+            }
+        });
+
+        // Send inline button as well for convenience
+        await ctx.reply(isRu ? 'Перейти в приложение:' : 'Ilovaga o\'tish:', {
+            reply_markup: {
+                inline_keyboard: [[Markup.button.webApp(isRu ? '🎓 Открыть профиль' : '🎓 Profilni ochish', studentUrl || '')]]
+            }
         });
 
         // If there is a deep link parameter (like transitioning to a test from the channel)
@@ -132,30 +145,68 @@ export class BotUpdate implements OnModuleInit {
         }
     }
 
-    @On('text')
-    async onMessage(@Ctx() ctx: BotContext) {
-        // @ts-ignore
-        const text = ctx.message?.text;
+    @Hears(['🎓 Личный кабинет', '🎓 Mening kabinetim', '📝 Пройти тест', '📝 Test ishlash'])
+    async onCabinet(@Ctx() ctx: BotContext) {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
         const lang = user?.language_code || 'ru';
 
-        if (text === 'Личный кабинет' || text === 'Mening kabinetim') {
-            if (!user) {
-                await ctx.reply(lang === 'uz' ? '⚠️ Avval ro\'yxatdan o\'ting: /start' : '⚠️ Сначала пройдите регистрацию: /start');
-                return;
-            }
-
-            const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
-            await ctx.reply(
-                lang === 'ru' ? '👇 Нажмите на кнопку ниже, чтобы войти в кабинет:' : '👇 Kabinetga kirish uchun pastdagi tugmani bosing:',
-                {
-                    parse_mode: 'Markdown',
-                    ...Markup.inlineKeyboard([
-                        [Markup.button.webApp(lang === 'ru' ? '🎓 Открыть кабинет' : '🎓 Kabinetni ochish', studentUrl || '')]
-                    ])
-                }
-            );
+        if (!user) {
+            await ctx.reply(lang === 'uz' ? '⚠️ Avval ro\'yxatdan o\'ting: /start' : '⚠️ Пожалуйста, пройдите регистрацию: /start');
+            return;
         }
+
+        const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
+        await ctx.reply(
+            lang === 'ru' ? '🔗 Нажмите на кнопку ниже, чтобы открыть платформу:' : '🔗 Platformani ochish uchun pastdagi tugmani bosing:',
+            {
+                parse_mode: 'Markdown',
+                ...Markup.inlineKeyboard([
+                    [Markup.button.webApp(lang === 'ru' ? '🎓 Платформа Newton' : '🎓 Newton platformasi', studentUrl || '')]
+                ])
+            }
+        );
+    }
+
+    @Hears(['📞 Бесплатная консультация', '📞 Bepul konsultatsiya'])
+    async onConsultation(@Ctx() ctx: BotContext) {
+        const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
+        const lang = user?.language_code || 'ru';
+        
+        await ctx.reply(
+            lang === 'ru' 
+            ? '🧑‍💼 Наш менеджер свяжется с вами в ближайшее время. Или вы можете написать напрямую: @manager' 
+            : '🧑‍💼 Menejerimiz tez orada siz bilan bog\'lanadi. Yoki to\'g\'ridan-to\'g\'ri yozishingiz mumkin: @manager',
+            { parse_mode: 'Markdown' }
+        );
+    }
+
+    @Command('language')
+    @Hears(['🌐 Сменить язык', '🌐 Tilni o\'zgartirish'])
+    async onChangeLanguage(@Ctx() ctx: BotContext) {
+        await ctx.reply('🇺🇿 Iltimos, tilni tanlang:\n🇷🇺 Пожалуйста, выберите язык:', {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        Markup.button.callback('🇷🇺 Русский', 'set_lang_ru'),
+                        Markup.button.callback('🇺🇿 O\'zbek tili', 'set_lang_uz')
+                    ]
+                ]
+            }
+        });
+    }
+
+    @Action('set_lang_ru')
+    async setLangRu(@Ctx() ctx: BotContext) {
+        await this.usersService.updateLanguage(ctx.from.id.toString(), 'ru');
+        await ctx.answerCbQuery('Язык изменен на Русский 🇷🇺');
+        await ctx.reply('✅ Язык успешно изменен на Русский.\nИспользуйте /start для обновления меню.');
+    }
+
+    @Action('set_lang_uz')
+    async setLangUz(@Ctx() ctx: BotContext) {
+        await this.usersService.updateLanguage(ctx.from.id.toString(), 'uz');
+        await ctx.answerCbQuery('Til O\'zbek tiliga o\'zgartirildi 🇺🇿');
+        await ctx.reply('✅ Til muvaffaqiyatli O\'zbek tiliga o\'zgartirildi.\nMenyuni yangilash uchun /start dan foydalaning.');
     }
 
     @Command('add_channel')

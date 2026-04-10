@@ -5,9 +5,10 @@ export class SchedulePostDto {
     @IsString()
     channelId: string;
 
-    @IsNotEmpty()
+    /** Optional: The test ID to attach to the message. If omitted, sends a regular text post */
+    @IsOptional()
     @IsString()
-    testId: string;
+    testId?: string;
 
     /** Optional custom message text. If omitted, a template is auto-generated from test metadata. */
     @IsOptional()

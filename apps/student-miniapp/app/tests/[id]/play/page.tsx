@@ -184,10 +184,7 @@ export default function TestPlayer() {
                 />
             </div>
 
-            {/* Question Grid Overlay */}
-            {showGrid && (
-                <div className="fixed inset-0 z-40 bg-[#0f0f1a]/98 backdrop-blur-md pt-20 px-6">
-                    <div className="flex justify-between items-center mb-6">
+
             <main className="flex-1 px-5 py-6">
                 <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
                     {t('test_player.question')} {currentIndex + 1} {t('test_player.of')} {questions.length}

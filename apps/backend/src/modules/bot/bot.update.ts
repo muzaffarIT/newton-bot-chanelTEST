@@ -101,51 +101,60 @@ export class BotUpdate implements OnModuleInit {
         if (!user) {
             // User not registered, enter Registration Wizard
             this.logger.log(`User ${ctx.from.id} is new. Starting REGISTRATION_WIZARD.`);
-
-            // Pass test_id so the wizard knows where to route after completion
             await ctx.scene.enter('REGISTRATION_WIZARD', { test_id: payload });
             return;
         }
 
-        // User is registered
+        const currentId = ctx.from.id.toString();
+        const isAdmin = await this.isAdminUser(currentId);
         const isRu = user.language_code === 'ru';
-        const welcomeText = isRu
-            ? `👋 Добро пожаловать, *${user.first_name}*!\n\nВаш образовательный профиль Newton Academy успешно активирован. В личном кабинете вам доступны:\n\n🔹 Прохождение модульных тестирований\n🔹 Детальная аналитика прогресса\n🔹 Накопление бонусных баллов\n\n👇 Нажмите на кнопку ниже, чтобы перейти в панель студента:`
-            : `👋 Xush kelibsiz, *${user.first_name}*!\n\nNewton Academy ta'lim profilingiz muvaffaqiyatli faollashtirildi. Shaxsiy kabinetingizda quyidagilar mavjud:\n\n🔹 Modul testlarini o'tish\n🔹 Rivojlanish analitikasi\n🔹 Bonus ballarini yig'ish\n\n👇 Talaba paneliga o'tish uchun quyidagi tugmani bosing:`;
+
+        // Build keyboard based on role
+        let keyboardOptions: string[][];
+        if (isAdmin) {
+            keyboardOptions = [
+                ['📢 Опубликовать пост', '➕ Добавить канал'],
+                ['🎓 Личный кабинет студента'],
+                ['📝 Пройти тест', '📞 Консультация'],
+                ['🌐 Сменить язык'],
+            ];
+        } else {
+            keyboardOptions = isRu
+                ? [['🎓 Личный кабинет'], ['📝 Пройти тест', '📞 Бесплатная консультация'], ['🌐 Сменить язык']]
+                : [['🎓 Mening kabinetim'], ['📝 Test ishlash', '📞 Bepul konsultatsiya'], ['🌐 Tilni o\'zgartirish']];
+        }
+
+        const welcomeText = isAdmin
+            ? `👋 Добро пожаловать, *${user.first_name}*! _(Администратор)_\n\nДоступные действия:\n📢 *Опубликовать пост* — опубликовать текст в канал\n➕ *Добавить канал* — зарегистрировать новый канал\n\nАдмин-панель доступна по кнопке меню.`
+            : isRu
+                ? `👋 Добро пожаловать, *${user.first_name}*!\n\nВаш образовательный профиль Newton Academy успешно активирован. Нажмите на кнопку ниже для входа в кабинет:`
+                : `👋 Xush kelibsiz, *${user.first_name}*!\n\nNewton Academy ta'lim profilingiz faollashtirildi:`;
 
         const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
-
-        // We will add a persistent reply keyboard for quick actions
-        const keyboardOptions = isRu 
-            ? [['🎓 Личный кабинет'], ['📝 Пройти тест', '📞 Бесплатная консультация'], ['🌐 Сменить язык']]
-            : [['🎓 Mening kabinetim'], ['📝 Test ishlash', '📞 Bepul konsultatsiya'], ['🌐 Tilni o\'zgartirish']];
 
         await ctx.reply(welcomeText, {
             parse_mode: 'Markdown',
             reply_markup: {
                 keyboard: keyboardOptions,
-                resize_keyboard: true
-            }
+                resize_keyboard: true,
+            },
         });
 
-        // Send inline button as well for convenience
-        await ctx.reply(isRu ? 'Перейти в приложение:' : 'Ilovaga o\'tish:', {
-            reply_markup: {
-                inline_keyboard: [[Markup.button.webApp(isRu ? '🎓 Открыть профиль' : '🎓 Profilni ochish', studentUrl || '')]]
-            }
-        });
+        if (!isAdmin) {
+            await ctx.reply(isRu ? 'Перейти в приложение:' : 'Ilovaga o\'tish:', {
+                reply_markup: {
+                    inline_keyboard: [[Markup.button.webApp(isRu ? '🎓 Открыть профиль' : '🎓 Profilni ochish', studentUrl || '')]]
+                },
+            });
+        }
 
-        // If there is a deep link parameter (like transitioning to a test from the channel)
         if (payload && payload.startsWith('test_')) {
             const testId = payload.replace('test_', '');
-            // In the new Mini App world, we should ideally open the Mini App directly to that test
-            // But for now, let's just enter the bot scene to keep compatibility
             await ctx.scene.enter('TEST_SCENE', { testId });
-            return;
         }
     }
 
-    @Hears(['🎓 Личный кабинет', '🎓 Mening kabinetim', '📝 Пройти тест', '📝 Test ishlash'])
+    @Hears(['🎓 Личный кабинет', '🎓 Mening kabinetim', '📝 Пройти тест', '📝 Test ishlash', '🎓 Личный кабинет студента'])
     async onCabinet(@Ctx() ctx: BotContext) {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
         const lang = user?.language_code || 'ru';
@@ -165,6 +174,31 @@ export class BotUpdate implements OnModuleInit {
                 ])
             }
         );
+    }
+
+    /** Admin keyboard button: Publish post */
+    @Hears('📢 Опубликовать пост')
+    async onPostButton(@Ctx() ctx: BotContext) {
+        const currentId = ctx.from.id.toString();
+        const isAdmin = await this.isAdminUser(currentId);
+        if (!isAdmin) {
+            await ctx.reply('⚠️ У вас нет прав для публикации постов.');
+            return;
+        }
+        await ctx.scene.enter('POST_SCENE');
+    }
+
+    /** Admin keyboard button: Add channel */
+    @Hears('➕ Добавить канал')
+    async onAddChannelButton(@Ctx() ctx: BotContext) {
+        const currentId = ctx.from.id.toString();
+        const isAdmin = await this.isAdminUser(currentId);
+        if (!isAdmin) {
+            await ctx.reply('⚠️ У вас нет прав для добавления каналов.');
+            return;
+        }
+        // Re-use the same add_channel logic
+        await this.onAddChannel(ctx);
     }
 
     @Hears(['📞 Бесплатная консультация', '📞 Bepul konsultatsiya'])

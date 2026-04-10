@@ -105,7 +105,7 @@ export default function SchedulePage() {
                     >
                         <option value="">Выберите канал...</option>
                         {channels.map((ch: any) => (
-                            <option key={ch.id} value={ch.telegram_id}>{ch.name}</option>
+                            <option key={ch.id} value={ch.id}>{ch.name}</option>
                         ))}
                     </select>
 

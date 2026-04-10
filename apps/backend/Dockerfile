@@ -30,11 +30,11 @@ RUN npm install --only=production --legacy-peer-deps && \
     npx prisma generate && \
     npm cache clean --force
 
-# Copy compiled output
+# Copy compiled output (includes dist/i18n if it exists)
 COPY --from=builder /app/dist ./dist
 
-# Copy i18n files
-COPY --from=builder /app/dist/i18n ./dist/i18n 2>/dev/null; true
+# Copy static assets if they exist
+RUN mkdir -p ./dist/src
 
 # Set ownership
 RUN addgroup --system --gid 1001 nodejs && \

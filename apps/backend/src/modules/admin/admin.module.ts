@@ -6,14 +6,11 @@ import { AdminTopicsController } from './admin-topics.controller';
 import { AdminChannelsController } from './admin-channels.controller';
 import { AdminUsersController } from './admin-users.controller';
 import { AdminStoreController } from './admin-store.controller';
+import { AdminSettingsController, StudentSettingsController } from './admin-settings.controller';
+import { PrismaModule } from '../prisma/prisma.module';
 
-/**
- * AdminModule — REST API surface for the Newton Academy admin panel.
- * All routes are prefixed /api/admin/* by their controllers.
- *
- * TODO: Add AdminJwtAuthGuard to protect all routes before production.
- */
 @Module({
+    imports: [PrismaModule],
     controllers: [
         AdminLeadsController,
         AdminTestsController,
@@ -22,6 +19,8 @@ import { AdminStoreController } from './admin-store.controller';
         AdminChannelsController,
         AdminUsersController,
         AdminStoreController,
+        AdminSettingsController,
+        StudentSettingsController,
     ],
 })
 export class AdminModule { }

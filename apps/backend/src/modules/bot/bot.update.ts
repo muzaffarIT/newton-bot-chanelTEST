@@ -110,27 +110,34 @@ export class BotUpdate implements OnModuleInit {
         const isRu = user.language_code === 'ru';
 
         // Build keyboard based on role
-        let keyboardOptions: string[][];
+        let keyboardOptions: any[][];
         if (isAdmin) {
             keyboardOptions = [
                 ['📢 Опубликовать пост', '➕ Добавить канал'],
-                ['🎓 Личный кабинет студента'],
-                ['📝 Пройти тест', '📞 Консультация'],
-                ['🌐 Сменить язык'],
+                ['⚙️ Настройки администратора'],
             ];
         } else {
             keyboardOptions = isRu
-                ? [['🎓 Личный кабинет'], ['📝 Пройти тест', '📞 Бесплатная консультация'], ['🌐 Сменить язык']]
-                : [['🎓 Mening kabinetim'], ['📝 Test ishlash', '📞 Bepul konsultatsiya'], ['🌐 Tilni o\'zgartirish']];
+                ? [['🎓 Кабинет', '📝 Тесты'], ['📞 Консультация', '🌐 Язык']]
+                : [['🎓 Kabinet', '📝 Testlar'], ['📞 Konsultatsiya', '🌐 Tilni o\'zgartirish']];
         }
 
         const welcomeText = isAdmin
-            ? `👋 Добро пожаловать, *${user.first_name}*! _(Администратор)_\n\nДоступные действия:\n📢 *Опубликовать пост* — опубликовать текст в канал\n➕ *Добавить канал* — зарегистрировать новый канал\n\nАдмин-панель доступна по кнопке меню.`
+            ? `👋 Добро пожаловать, *${user.first_name}*! _(Администратор)_\n\nДоступные действия:\n📢 *Опубликовать пост* — форма отправки поста\n➕ *Добавить канал* — регистрация бота в канале\n⚙️ *Настройки администратора* — панель управления`
             : isRu
-                ? `👋 Добро пожаловать, *${user.first_name}*!\n\nВаш образовательный профиль Newton Academy успешно активирован. Нажмите на кнопку ниже для входа в кабинет:`
-                : `👋 Xush kelibsiz, *${user.first_name}*!\n\nNewton Academy ta'lim profilingiz faollashtirildi:`;
+                ? `👋 Добро пожаловать, *${user.first_name}*!\n\nВаш образовательный профиль Newton Academy успешно активирован. Выберите нужное действие в меню ниже:`
+                : `👋 Xush kelibsiz, *${user.first_name}*!\n\nNewton Academy ta'lim profilingiz faollashtirildi. Quyida kerakli bo'limni tanlang:`;
 
         const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
+        const adminUrl = this.config.get<string>('ADMIN_MINI_APP_URL');
+
+        let inlineKeyboard = [];
+        
+        if (isAdmin && adminUrl) {
+           inlineKeyboard = [[{ text: '🛠 Открыть Админ-панель', web_app: { url: `${adminUrl}/dashboard` } }]];
+        } else if (!isAdmin && studentUrl) {
+           inlineKeyboard = [[{ text: isRu ? '🎓 Открыть Личный Кабинет' : '🎓 Kabinetni ochish', web_app: { url: studentUrl } }]];
+        }
 
         await ctx.reply(welcomeText, {
             parse_mode: 'Markdown',
@@ -140,37 +147,36 @@ export class BotUpdate implements OnModuleInit {
             },
         });
 
-        if (!isAdmin) {
-            await ctx.reply(isRu ? 'Перейти в приложение:' : 'Ilovaga o\'tish:', {
-                reply_markup: {
-                    inline_keyboard: [[Markup.button.webApp(isRu ? '🎓 Открыть профиль' : '🎓 Profilni ochish', studentUrl || '')]]
-                },
-            });
-        }
-
         if (payload && payload.startsWith('test_')) {
             const testId = payload.replace('test_', '');
             await ctx.scene.enter('TEST_SCENE', { testId });
         }
     }
 
-    @Hears(['🎓 Личный кабинет', '🎓 Mening kabinetim', '📝 Пройти тест', '📝 Test ishlash', '🎓 Личный кабинет студента'])
+    @Hears(['🎓 Кабинет', '🎓 Kabinet', '📝 Тесты', '📝 Testlar', '⚙️ Настройки администратора'])
     async onCabinet(@Ctx() ctx: BotContext) {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
         const lang = user?.language_code || 'ru';
+        const currentId = ctx.from.id.toString();
+        const isAdmin = await this.isAdminUser(currentId);
 
-        if (!user) {
+        if (!user && !isAdmin) {
             await ctx.reply(lang === 'uz' ? '⚠️ Avval ro\'yxatdan o\'ting: /start' : '⚠️ Пожалуйста, пройдите регистрацию: /start');
             return;
         }
 
         const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
+        const adminUrl = this.config.get<string>('ADMIN_MINI_APP_URL');
+
+        const btnText = isAdmin ? '🛠 Открыть Админ-панель' : (lang === 'ru' ? '🎓 Платформа Newton' : '🎓 Newton platformasi');
+        const urlToOpen = isAdmin ? `${adminUrl}/dashboard` : studentUrl;
+
         await ctx.reply(
-            lang === 'ru' ? '🔗 Нажмите на кнопку ниже, чтобы открыть платформу:' : '🔗 Platformani ochish uchun pastdagi tugmani bosing:',
+            isAdmin ? '🔗 Нажмите кнопку ниже для управления платформой:' : (lang === 'ru' ? '🔗 Нажмите на кнопку ниже, чтобы открыть платформу:' : '🔗 Platformani ochish uchun pastdagi tugmani bosing:'),
             {
                 parse_mode: 'Markdown',
                 ...Markup.inlineKeyboard([
-                    [Markup.button.webApp(lang === 'ru' ? '🎓 Платформа Newton' : '🎓 Newton platformasi', studentUrl || '')]
+                    [Markup.button.webApp(btnText, urlToOpen || '')]
                 ])
             }
         );
@@ -201,17 +207,34 @@ export class BotUpdate implements OnModuleInit {
         await this.onAddChannel(ctx);
     }
 
-    @Hears(['📞 Бесплатная консультация', '📞 Bepul konsultatsiya'])
+    @Hears(['📞 Бесплатная консультация', '📞 Bepul konsultatsiya', '📞 Консультация'])
     async onConsultation(@Ctx() ctx: BotContext) {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
         const lang = user?.language_code || 'ru';
-        
-        await ctx.reply(
-            lang === 'ru' 
-            ? '🧑‍💼 Наш менеджер свяжется с вами в ближайшее время. Или вы можете написать напрямую: @manager' 
-            : '🧑‍💼 Menejerimiz tez orada siz bilan bog\'lanadi. Yoki to\'g\'ridan-to\'g\'ri yozishingiz mumkin: @manager',
-            { parse_mode: 'Markdown' }
-        );
+
+        // Read contact from DB settings (with fallback)
+        const settings = await this.prisma.appSetting.findMany({
+            where: { key: { in: ['consultant_username', 'consultant_phone', 'consultant_name'] } },
+        });
+        const smap: Record<string, string> = {};
+        settings.forEach(s => { smap[s.key] = s.value; });
+        const username = smap['consultant_username'] || '@newton_support';
+        const phone = smap['consultant_phone'] || '+998 90 123 45 67';
+        const name = smap['consultant_name'] || (lang === 'ru' ? 'Поддержка Newton' : 'Newton qo\'llab-quvvatlash');
+
+        const text = lang === 'ru'
+            ? `🧑‍💼 *${name}*\n\n📱 Телефон: ${phone}\n💬 Telegram: ${username}\n\nНаш специалист ответит на все ваши вопросы в рабочее время (Пн–Сб 9:00–18:00).`
+            : `🧑‍💼 *${name}*\n\n📱 Telefon: ${phone}\n💬 Telegram: ${username}\n\nMutaxassisimiz barcha savollaringizni ish vaqtida (Du–Sh 9:00–18:00) javob beradi.`;
+
+        await ctx.reply(text, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '💬 Написать', url: `https://t.me/${username.replace('@', '')}` },
+                    { text: '📱 Позвонить', url: `tel:${phone.replace(/\s/g, '')}` },
+                ]],
+            },
+        });
     }
 
     @Command('language')

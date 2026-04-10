@@ -1,8 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { InjectBot } from 'nestjs-telegraf';
+import { Telegraf } from 'telegraf';
 
 export interface PostJobPayload {
     channelId: string;
@@ -20,30 +22,22 @@ export class SchedulerService {
         @InjectQueue('channel-posts-queue') private readonly postsQueue: Queue,
         private readonly prisma: PrismaService,
         private readonly config: ConfigService,
+        @InjectBot() private readonly bot: Telegraf,
     ) { }
 
-    /**
-     * Generates a deep-link URL for a given test.
-     */
     generateDeepLink(testId?: string): string {
         if (!testId) return '';
         const botUsername = this.config.get<string>('BOT_USERNAME') || 'NewtonAcademyBot';
         return `https://t.me/${botUsername}?start=test_${testId}`;
     }
 
-    /**
-     * Auto-generates a post message from test metadata.
-     * Uses the stored channel language or defaults to Russian.
-     */
     async generateMessageTemplate(testId?: string, lang: string = 'ru'): Promise<string> {
         const isRu = lang === 'ru';
         if (!testId) return isRu ? 'Ваш текст...' : 'Sizning matningiz...';
-        
+
         const test = await this.prisma.test.findUnique({ where: { id: testId } });
         if (!test) throw new NotFoundException(`Test ${testId} not found`);
 
-        
-        
         return [
             isRu ? `📚 *Newton Academy — Диагностический тест*` : `📚 *Newton Academy — Diagnostika testi*`,
             ``,
@@ -57,7 +51,9 @@ export class SchedulerService {
     }
 
     /**
-     * Schedules (or immediately publishes) a post to a Telegram channel.
+     * Schedules or immediately publishes a post to a Telegram channel.
+     * When publishNow=true: publishes DIRECTLY via Telegram API (no queue dependency).
+     * When publishNow=false: enqueues to BullMQ with delay.
      */
     async scheduleTestPost(options: {
         channelId: string;
@@ -69,57 +65,115 @@ export class SchedulerService {
     }) {
         const { channelId, testId, publishNow } = options;
 
-        // Auto-generate message if not provided
         if (!options.messageText && !testId) {
             throw new Error('Message text is required when no test is specified');
         }
-        const messageText = options.messageText || await this.generateMessageTemplate(testId);
 
+        const lang = options.lang || 'ru';
+        const messageText = options.messageText || await this.generateMessageTemplate(testId, lang);
         const publishAt = publishNow ? new Date() : (options.publishAt || new Date());
-        const delay = Math.max(0, publishAt.getTime() - Date.now());
 
-        this.logger.log(`Scheduling post: test=${testId} channel=${channelId} delay=${delay}ms publishNow=${publishNow}`);
+        this.logger.log(`Post: test=${testId} channel=${channelId} publishNow=${publishNow}`);
 
-        // Save to DB
-        const scheduledPost = await this.prisma.scheduledPost.create({
-            data: {
-                test_id: testId,
-                channel_id: channelId,
-                publish_at: publishAt,
-                message_tmpl: messageText,
-                language: options.lang || 'ru',
-                status: 'PENDING',
-            },
-        });
+        // Get channel from DB
+        const channel = await this.prisma.channel.findUnique({ where: { id: channelId } });
+        if (!channel) throw new Error(`Channel ${channelId} not found in database`);
 
-        // Enqueue with appropriate delay
-        await this.postsQueue.add(
-            'publish-post',
-            {
-                channelId,
-                testId,
-                messageText,
+        if (publishNow) {
+            // ─── DIRECT PUBLISH ───────────────────────────────────────────────────
+            try {
+                // Build post with deep link button if test is attached
+                const deepLink = this.generateDeepLink(testId);
+                const extra: any = { parse_mode: 'Markdown' };
+
+                if (testId && deepLink) {
+                    extra.reply_markup = {
+                        inline_keyboard: [[
+                            { text: lang === 'ru' ? '📝 Начать тест' : '📝 Testni boshlash', url: deepLink }
+                        ]]
+                    };
+                }
+
+                await this.bot.telegram.sendMessage(channel.telegram_id, messageText, extra);
+                this.logger.log(`✅ Post published directly to channel ${channel.name}`);
+
+                const scheduledPost = await this.prisma.scheduledPost.create({
+                    data: {
+                        test_id: testId,
+                        channel_id: channelId,
+                        publish_at: publishAt,
+                        message_tmpl: messageText,
+                        language: lang,
+                        status: 'PUBLISHED',
+                    },
+                });
+
+                return {
+                    success: true,
+                    scheduledPostId: scheduledPost.id,
+                    publishAt,
+                    publishedNow: true,
+                    deepLink,
+                };
+            } catch (err) {
+                this.logger.error(`❌ Direct publish failed: ${err.message}`);
+
+                // Save as FAILED in DB for visibility
+                await this.prisma.scheduledPost.create({
+                    data: {
+                        test_id: testId,
+                        channel_id: channelId,
+                        publish_at: publishAt,
+                        message_tmpl: messageText,
+                        language: lang,
+                        status: 'FAILED',
+                        error_log: err.message,
+                    },
+                });
+
+                throw new Error(`Ошибка публикации: ${err.message}. Убедитесь что бот является администратором канала.`);
+            }
+        } else {
+            // ─── QUEUED PUBLISH ───────────────────────────────────────────────────
+            const delay = Math.max(0, publishAt.getTime() - Date.now());
+
+            const scheduledPost = await this.prisma.scheduledPost.create({
+                data: {
+                    test_id: testId,
+                    channel_id: channelId,
+                    publish_at: publishAt,
+                    message_tmpl: messageText,
+                    language: lang,
+                    status: 'PENDING',
+                },
+            });
+
+            await this.postsQueue.add(
+                'publish-post',
+                {
+                    channelId,
+                    testId,
+                    messageText,
+                    scheduledPostId: scheduledPost.id,
+                    language: lang,
+                } as PostJobPayload,
+                {
+                    delay,
+                    attempts: 3,
+                    backoff: { type: 'exponential', delay: 5000 },
+                },
+            );
+
+            return {
+                success: true,
                 scheduledPostId: scheduledPost.id,
-                language: options.lang || 'ru',
-            } as PostJobPayload,
-            {
-                delay,
-                attempts: 3,
-                backoff: { type: 'exponential', delay: 5000 },
-            },
-        );
-
-        return {
-            success: true,
-            scheduledPostId: scheduledPost.id,
-            publishAt,
-            deepLink: this.generateDeepLink(testId),
-        };
+                publishAt,
+                publishedNow: false,
+                deepLink: this.generateDeepLink(testId),
+            };
+        }
     }
 
-    /**
-     * Returns all scheduled posts for admin view.
-     */
     async listScheduledPosts(page = 1, limit = 20) {
         const [posts, total] = await Promise.all([
             this.prisma.scheduledPost.findMany({
@@ -133,9 +187,6 @@ export class SchedulerService {
         return { posts, total, page, limit };
     }
 
-    /**
-     * Cancels a pending scheduled post.
-     */
     async cancelScheduledPost(id: string) {
         const post = await this.prisma.scheduledPost.findUnique({ where: { id } });
         if (!post) throw new NotFoundException(`ScheduledPost ${id} not found`);

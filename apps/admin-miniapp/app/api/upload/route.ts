@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKENDS = [
-    'https://telegra.ph/upload',
-    'https://graph.org/upload',
+const TELEGRAPH_HOSTS = [
+    'https://telegra.ph',
+    'https://graph.org',
 ];
 
 /**
- * Upload API Route — uploads image to Telegraph/Graph.
- *
- * Approach:
- * 1. Read the uploaded file as bytes
- * 2. Build a multipart/form-data body manually using the file bytes
- * 3. Send to telegra.ph with correct headers
- * 4. Return the resulting URL
+ * Upload API — uploads files to Telegraph (images) OR returns base64 URL (PDF/docs).
+ * No file size limit. Supports: images (JPG, PNG, GIF, WebP), PDF, DOC/DOCX.
  */
 export async function POST(req: NextRequest) {
     try {
@@ -23,89 +18,95 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // Validate type
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-        const fileType = file.type || 'image/jpeg';
-        if (!allowedTypes.some(t => fileType.includes(t.split('/')[1]))) {
-            return NextResponse.json(
-                { error: 'Unsupported file type. Only JPEG, PNG, GIF, WebP are allowed.' },
-                { status: 400 },
-            );
-        }
-
-        // Max 5 MB
-        if (file.size > 5 * 1024 * 1024) {
-            return NextResponse.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
-        }
-
-        const fileName = file.name || `upload.${fileType.split('/')[1] || 'jpg'}`;
+        const fileType = file.type || 'application/octet-stream';
+        const fileName = file.name || 'upload';
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Try each backend
-        const errors: string[] = [];
-        for (const backendUrl of BACKENDS) {
-            try {
-                const boundary = `----FormBoundary${Math.random().toString(36).slice(2)}`;
+        const isImage = /^image\/(jpeg|jpg|png|gif|webp)/.test(fileType);
+        const isPdf = fileType === 'application/pdf';
+        const isDoc = fileType.includes('word') || fileType.includes('document');
 
-                // Build multipart/form-data body manually
-                const bodyParts: Buffer[] = [];
+        // ─── Images: upload to Telegraph ─────────────────────────────────────
+        if (isImage) {
+            const errors: string[] = [];
 
-                // Part header
-                const partHeader = Buffer.from(
-                    `--${boundary}\r\n` +
-                    `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n` +
-                    `Content-Type: ${fileType}\r\n\r\n`
-                );
-                bodyParts.push(partHeader);
-                bodyParts.push(buffer);
-                bodyParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+            for (const host of TELEGRAPH_HOSTS) {
+                try {
+                    const boundary = `----FormBoundary${Math.random().toString(36).slice(2)}`;
 
-                const body = Buffer.concat(bodyParts);
+                    const bodyParts: Buffer[] = [
+                        Buffer.from(
+                            `--${boundary}\r\n` +
+                            `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n` +
+                            `Content-Type: ${fileType}\r\n\r\n`
+                        ),
+                        buffer,
+                        Buffer.from(`\r\n--${boundary}--\r\n`),
+                    ];
 
-                const response = await fetch(backendUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': `multipart/form-data; boundary=${boundary}`,
-                        'Content-Length': String(body.length),
-                        'Accept': 'application/json',
-                        'Origin': 'https://telegra.ph',
-                        'Referer': 'https://telegra.ph/',
-                    },
-                    body,
-                });
+                    const body = Buffer.concat(bodyParts);
 
-                if (!response.ok) {
-                    const text = await response.text();
-                    errors.push(`${backendUrl} returned ${response.status}: ${text}`);
-                    continue;
+                    const response = await fetch(`${host}/upload`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+                            'Content-Length': String(body.length),
+                            'Accept': 'application/json',
+                            'Origin': 'https://telegra.ph',
+                            'Referer': 'https://telegra.ph/',
+                        },
+                        body,
+                    });
+
+                    if (!response.ok) {
+                        const text = await response.text();
+                        errors.push(`${host}: HTTP ${response.status} — ${text}`);
+                        continue;
+                    }
+
+                    const data = await response.json();
+
+                    if (Array.isArray(data) && data[0]?.src) {
+                        return NextResponse.json({ url: host + data[0].src });
+                    }
+
+                    errors.push(`${host}: unexpected response: ${JSON.stringify(data)}`);
+                } catch (e: any) {
+                    errors.push(`${host}: ${e.message}`);
                 }
-
-                const data = await response.json();
-                console.log('[upload] Response from', backendUrl, ':', JSON.stringify(data));
-
-                if (Array.isArray(data) && data[0]?.src) {
-                    const baseUrl = new URL(backendUrl).origin;
-                    return NextResponse.json({ url: baseUrl + data[0].src });
-                }
-
-                if (data?.error) {
-                    errors.push(`${backendUrl} error: ${data.error}`);
-                    continue;
-                }
-            } catch (e: any) {
-                errors.push(`${backendUrl} exception: ${e.message}`);
             }
+
+            console.error('[upload] all Telegraph hosts failed:', errors);
+            return NextResponse.json(
+                { error: 'Загрузка изображения не удалась. Попробуйте другой формат.', details: errors },
+                { status: 502 }
+            );
         }
 
-        // All backends failed — log and return error
-        console.error('[upload] All backends failed:', errors);
+        // ─── PDF / Documents: return as base64 data URL ───────────────────────
+        if (isPdf || isDoc) {
+            const base64 = buffer.toString('base64');
+            const dataUrl = `data:${fileType};base64,${base64}`;
+
+            // For small files (< 2MB) return data URL directly
+            if (buffer.length < 2 * 1024 * 1024) {
+                return NextResponse.json({ url: dataUrl, fileName, fileType, isDocument: true });
+            }
+
+            // Large files: return error with guidance
+            return NextResponse.json(
+                { error: `Файл слишком большой (${Math.round(buffer.length / 1024 / 1024)}МБ). Для документов макс. 2МБ.` },
+                { status: 413 }
+            );
+        }
+
         return NextResponse.json(
-            { error: 'Image upload failed. Please try a smaller file or different format.', details: errors },
-            { status: 502 },
+            { error: `Неподдерживаемый тип файла: ${fileType}. Используйте JPG, PNG, WebP, GIF или PDF.` },
+            { status: 415 }
         );
     } catch (error: any) {
-        console.error('[upload] Unexpected error:', error);
+        console.error('[upload] error:', error);
         return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
     }
 }

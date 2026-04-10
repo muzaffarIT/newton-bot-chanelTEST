@@ -55,8 +55,8 @@ export default function TestsPage() {
                 transition={spring}
                 className="px-5 pt-8 pb-5"
             >
-                <h1 className="text-2xl font-black text-white">Тесты</h1>
-                <p className="text-gray-500 text-[13px] mt-1">Выберите дисциплину и пройдите тест</p>
+                <h1 className="text-2xl font-black text-white">{t('tests.title')}</h1>
+                <p className="text-gray-500 text-[13px] mt-1">{t('tests.subtitle')}</p>
             </motion.header>
 
             {/* Search */}
@@ -71,7 +71,7 @@ export default function TestsPage() {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Поиск тестов..."
+                    placeholder={t('tests.search')}
                     className="input pl-11 text-[15px]"
                 />
             </motion.div>
@@ -100,7 +100,7 @@ export default function TestsPage() {
                                 >
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider" style={{ background: 'rgba(79,110,247,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
-                                            {test.duration_minutes > 60 ? '📋 Экзамен' : '⚡ Тест'}
+                                            {test.duration_minutes > 60 ? `📋 ${t('tests.exam')}` : `⚡ ${t('tests.test')}`}
                                         </div>
                                         <div className="flex items-center gap-1.5 text-gray-500 text-[12px]">
                                             <Clock size={12} />
@@ -116,10 +116,10 @@ export default function TestsPage() {
                                     <div className="flex items-center justify-between" style={{ paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                                         <span className="text-gray-600 text-[13px] flex items-center gap-1.5">
                                             <BookOpen size={14} />
-                                            {test._count?.questions || test.questions?.length || 0} вопросов
+                                            {test._count?.questions || test.questions?.length || 0} {t('tests.questions')}
                                         </span>
                                         <div className="flex items-center gap-2 text-[13px] font-bold px-4 py-2 rounded-xl" style={{ background: 'rgba(79,110,247,0.12)', color: '#818cf8' }}>
-                                            {isLoading ? 'Загрузка...' : <><Zap size={14} /> Начать</>}
+                                            {isLoading ? t('tests.loading') : <><Zap size={14} /> {t('tests.start')}</>}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -136,8 +136,8 @@ export default function TestsPage() {
                         style={{ borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.08)' }}
                     >
                         <Search className="mx-auto text-gray-700 mb-3" size={32} />
-                        <p className="text-gray-500 font-semibold">Тестов не найдено</p>
-                        <p className="text-gray-700 text-[13px] mt-1">Попробуйте другой запрос</p>
+                        <p className="text-gray-500 font-semibold">{t('tests.no_results')}</p>
+                        <p className="text-gray-700 text-[13px] mt-1">{t('tests.no_results_sub')}</p>
                     </motion.div>
                 )}
             </div>

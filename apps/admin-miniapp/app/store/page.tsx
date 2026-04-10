@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
-import { Gift, Plus, Trash2, Edit2, X, Save, Package, Star, Loader2, CheckCircle } from 'lucide-react'
+import { Gift, Plus, Trash2, Edit2, X, Save, Package, Star, Loader2, CheckCircle, UploadCloud, FileText, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const REWARD_TYPES = [
@@ -71,9 +71,33 @@ function RewardModal({
               }
             : emptyForm,
     )
+    const [isUploading, setIsUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const set = (key: keyof RewardFormState, val: any) =>
         setForm((prev) => ({ ...prev, [key]: val }))
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setIsUploading(true)
+        try {
+            const fd = new FormData()
+            fd.append('file', file)
+            const res = await fetch('/api/upload', { method: 'POST', body: fd })
+            const data = await res.json()
+            if (res.ok && data.url) {
+                set('image_url', data.url)
+            } else {
+                alert(data.error || 'Ошибка загрузки')
+            }
+        } catch {
+            alert('Ошибка сервера при загрузке')
+        } finally {
+            setIsUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
 
     const handleSubmit = () => {
         if (!form.title_ru.trim() || !form.point_cost) return
@@ -183,23 +207,49 @@ function RewardModal({
                         </div>
                     </div>
 
-                    {/* Image URL */}
+                    {/* Image Upload */}
                     <div>
-                        <label className="label-xs">Ссылка на изображение</label>
-                        <input
-                            value={form.image_url}
-                            onChange={(e) => set('image_url', e.target.value)}
-                            placeholder="https://telegra.ph/..."
-                            className="input mt-1 text-sm font-mono"
-                        />
-                        {form.image_url && (
-                            <img
-                                src={form.image_url}
-                                alt=""
-                                className="mt-2 w-full h-24 object-cover rounded-xl border border-white/10"
-                                onError={(e) => (e.currentTarget.style.display = 'none')}
+                        <label className="label-xs">Изображение товара</label>
+                        <div className="mt-1">
+                            {form.image_url ? (
+                                <div className="relative">
+                                    {form.image_url.startsWith('data:application/pdf') ? (
+                                        <div className="w-full h-24 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center gap-2 text-sm text-gray-400">
+                                            <FileText size={20} className="text-red-400" />
+                                            PDF загружен
+                                        </div>
+                                    ) : (
+                                        <img src={form.image_url} alt="" className="w-full h-28 object-cover rounded-xl border border-white/10" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                    )}
+                                    <button
+                                        onClick={() => set('image_url', '')}
+                                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isUploading}
+                                    className="w-full h-24 border-2 border-dashed border-white/15 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-blue-500/50 hover:text-blue-400 transition-colors disabled:opacity-50"
+                                >
+                                    {isUploading ? (
+                                        <><Loader2 size={20} className="animate-spin" /><span className="text-xs">Загрузка...</span></>
+                                    ) : (
+                                        <><UploadCloud size={20} /><span className="text-xs">Загрузить изображение или PDF</span></>
+                                    )}
+                                </button>
+                            )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*,application/pdf"
+                                className="hidden"
+                                onChange={handleFileUpload}
                             />
-                        )}
+                        </div>
                     </div>
 
                     {/* Active toggle */}

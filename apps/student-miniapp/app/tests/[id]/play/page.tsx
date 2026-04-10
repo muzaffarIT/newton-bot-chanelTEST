@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { fetchActiveSession, startSession, saveAnswer, submitSession } from '@/lib/api'
-import { ChevronRight, Send, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { ChevronRight, Send, Clock, AlertCircle, Loader2, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/context/I18nContext'
 
 export default function TestPlayer() {
     const router = useRouter()
     const { id: testId } = useParams()
+    const { t } = useI18n()
     const [currentIndex, setCurrentIndex] = useState(0)
     const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
     const [timeLeft, setTimeLeft] = useState<number | null>(null)
@@ -31,7 +33,7 @@ export default function TestPlayer() {
                 // 2. If no session exists (or it's for a different test), start a new one
                 if (!activeSession || (testId && activeSession.test_id !== testId)) {
                     if (!testId) {
-                        setError('Не указан ID теста')
+                        setError('No test ID')
                         return
                     }
                     activeSession = await startSession(testId as string)
@@ -48,14 +50,14 @@ export default function TestPlayer() {
                     setSelectedAnswers(answersMap)
                 }
             } catch (e: any) {
-                const msg = e.response?.data?.message || e.message || 'Ошибка загрузки теста'
+                const msg = e.response?.data?.message || e.message || t('test_player.error')
                 setError(msg)
             } finally {
                 setLoading(false)
             }
         }
         init()
-    }, [testId])
+    }, [testId, t])
 
     const saveMutation = useMutation({
         mutationFn: ({ questionId, optionId }: { questionId: string; optionId: string }) =>
@@ -65,7 +67,7 @@ export default function TestPlayer() {
     const submitMutation = useMutation({
         mutationFn: () => submitSession(session.id),
         onSuccess: () => router.push(`/results/${session.id}`),
-        onError: (e: any) => alert(e.response?.data?.message || 'Ошибка при завершении теста'),
+        onError: (e: any) => alert(e.response?.data?.message || t('common.error')),
     })
 
     // Timer
@@ -103,7 +105,7 @@ export default function TestPlayer() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0f0f1a]">
                 <Loader2 size={36} className="text-blue-400 animate-spin" />
-                <p className="text-gray-400 text-sm">Загрузка теста...</p>
+                <p className="text-gray-400 text-sm">{t('test_player.loading')}</p>
             </div>
         )
     }
@@ -113,13 +115,13 @@ export default function TestPlayer() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-8 bg-[#0f0f1a]">
                 <AlertCircle size={48} className="text-red-400" />
-                <p className="text-white font-bold text-lg text-center">Ошибка загрузки теста</p>
-                <p className="text-gray-500 text-sm text-center">{error || 'Сессия не найдена'}</p>
+                <p className="text-white font-bold text-lg text-center">{t('test_player.error')}</p>
+                <p className="text-gray-500 text-sm text-center">{error}</p>
                 <button
                     onClick={() => router.push('/tests')}
-                    className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold"
+                    className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors flex items-center gap-2"
                 >
-                    ← Назад к тестам
+                    <ArrowLeft size={18} /> {t('test_player.back_to_tests')}
                 </button>
             </div>
         )
@@ -128,8 +130,9 @@ export default function TestPlayer() {
     const questions = session.test?.questions || []
     if (questions.length === 0) {
         return (
-            <div className="min-h-screen flex items-center justify-center text-gray-400">
-                В тесте нет вопросов
+            <div className="min-h-screen flex items-center justify-center text-gray-400 flex-col gap-4">
+                <p>{t('test_player.no_questions')}</p>
+                <button onClick={() => router.back()} className="text-blue-400">{t('test_player.back_to_tests')}</button>
             </div>
         )
     }
@@ -185,126 +188,97 @@ export default function TestPlayer() {
             {showGrid && (
                 <div className="fixed inset-0 z-40 bg-[#0f0f1a]/98 backdrop-blur-md pt-20 px-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold">Вопросы</h3>
-                        <span className="text-sm text-gray-500">{answeredCount}/{questions.length} отвечено</span>
-                    </div>
-                    <div className="grid grid-cols-5 gap-3">
-                        {questions.map((q: any, i: number) => (
-                            <button
-                                key={q.id}
-                                onClick={() => { setCurrentIndex(i); setShowGrid(false) }}
-                                className={cn(
-                                    "aspect-square rounded-xl flex items-center justify-center font-bold text-sm transition-all",
-                                    currentIndex === i
-                                        ? "bg-blue-600 text-white ring-2 ring-blue-500/50"
-                                        : selectedAnswers[q.id]
-                                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                            : "bg-white/5 text-gray-500 border border-white/5"
-                                )}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
-                    </div>
-                    <button
-                        onClick={() => setShowGrid(false)}
-                        className="w-full mt-8 py-4 bg-white/5 rounded-2xl font-bold"
-                    >
-                        Закрыть
-                    </button>
-                </div>
-            )}
-
-            {/* Main Content */}
-            <main className="px-5 py-6 pb-36 relative z-10" key={currentQuestion.id}>
-                <div className="mb-5">
-                    <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
-                        Вопрос {currentIndex + 1} / {questions.length}
-                    </span>
-                    <h2 className="text-xl font-bold text-white mt-2 leading-snug">
-                        {currentQuestion.content}
-                    </h2>
-                </div>
-
-                {/* Image */}
+            <main className="flex-1 px-5 py-6">
+                <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
+                    {t('test_player.question')} {currentIndex + 1} {t('test_player.of')} {questions.length}
+                </span>
+                <h2 className="text-xl font-bold text-white mt-2 leading-snug">
+                    {currentQuestion.content}
+                </h2>
                 {currentQuestion.image_url && (
-                    <div className="mb-5 rounded-2xl overflow-hidden border border-white/10 bg-black/20">
-                        <img
-                            src={currentQuestion.image_url}
-                            alt="Изображение к вопросу"
-                            className="w-full object-cover max-h-56"
-                        />
-                    </div>
+                    <img src={currentQuestion.image_url} alt="Question" className="mt-4 rounded-xl max-h-48 w-auto border border-white/10" />
                 )}
-
-                {/* Options */}
-                <div className="flex flex-col gap-3">
+                <div className="mt-8 flex flex-col gap-3">
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest pl-1">{t('test_player.options')}</p>
                     {currentQuestion.options.map((option: any, idx: number) => {
                         const isSelected = selectedAnswers[currentQuestion.id] === option.id
-                        const letters = ['A', 'B', 'C', 'D', 'E', 'F']
                         return (
                             <button
                                 key={option.id}
                                 onClick={() => handleAnswerSelect(option.id)}
                                 className={cn(
-                                    "w-full text-left px-4 py-4 rounded-2xl border transition-all duration-200 active:scale-[0.97] flex items-center gap-4",
-                                    isSelected
-                                        ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10"
-                                        : "border-white/8 bg-white/4 hover:border-white/15 hover:bg-white/8"
+                                    "w-full text-left px-4 py-4 rounded-2xl border transition-all flex items-center gap-4",
+                                    isSelected ? "border-blue-500 bg-blue-500/10" : "border-white/5 bg-white/5 hover:bg-white/10"
                                 )}
-                                style={isSelected ? {} : { borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}
                             >
-                                <div className={cn(
-                                    "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black shrink-0 transition-all",
-                                    isSelected ? "bg-blue-600 text-white" : "bg-white/5 text-gray-500"
-                                )}>
-                                    {letters[idx] || idx + 1}
+                                <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black", isSelected ? "bg-blue-600" : "bg-white/10")}>
+                                    {String.fromCharCode(65 + idx)}
                                 </div>
-                                <span className={cn(
-                                    "font-medium text-[15px] leading-relaxed flex-1",
-                                    isSelected ? "text-white" : "text-gray-300"
-                                )}>
-                                    {option.content}
-                                </span>
-                                {isSelected && (
-                                    <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
-                                        <div className="w-2 h-2 rounded-full bg-white" />
-                                    </div>
-                                )}
+                                <span className="font-medium text-[15px] flex-1">{option.content}</span>
                             </button>
                         )
                     })}
                 </div>
             </main>
 
-            {/* Footer Navigation */}
-            <footer className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-4 bg-[#0f0f1a]/95 backdrop-blur-xl border-t border-white/5 z-30 flex items-center gap-3">
-                <button
-                    disabled={currentIndex === 0}
-                    onClick={() => setCurrentIndex(prev => prev - 1)}
-                    className="flex-1 py-3.5 bg-white/5 text-white font-semibold rounded-2xl disabled:opacity-30 active:scale-95 transition-all text-[15px]"
-                >
-                    Назад
-                </button>
+            <div className="fixed bottom-0 left-0 right-0 p-5 bg-[#0f0f1a] border-t border-white/5 z-40">
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentIndex === 0}
+                        className="flex-1 py-3.5 rounded-2xl bg-white/5 text-white font-bold disabled:opacity-30 border border-white/5"
+                    >
+                        {t('test_player.back')}
+                    </button>
+                    {currentIndex === questions.length - 1 ? (
+                        <button
+                            onClick={() => { if (confirm(t('test_player.submit_confirm'))) submitMutation.mutate() }}
+                            disabled={submitMutation.isPending}
+                            className="flex-[2] py-3.5 rounded-2xl bg-blue-600 text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {submitMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> {t('test_player.finish')}</>}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
+                            className="flex-[2] py-3.5 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-2"
+                        >
+                            {t('test_player.next')} <ChevronRight size={18} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
-                {currentIndex === questions.length - 1 ? (
-                    <button
-                        onClick={() => { if (confirm('Завершить тест и отправить ответы?')) submitMutation.mutate() }}
-                        disabled={submitMutation.isPending}
-                        className="flex-[2] py-3.5 bg-gradient-to-r from-blue-600 to-violet-600 text-white font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg"
-                    >
-                        {submitMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                        Завершить
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => setCurrentIndex(prev => prev + 1)}
-                        className="flex-[2] py-3.5 bg-blue-600 text-white font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                        Далее <ChevronRight size={18} />
-                    </button>
-                )}
-            </footer>
+            <div className={cn("fixed inset-0 z-50 bg-black/80 backdrop-blur-sm transition-opacity duration-300", showGrid ? 'opacity-100' : 'opacity-0 pointer-events-none')}>
+                <div className={cn("absolute bottom-0 left-0 right-0 bg-[#161625] rounded-t-3xl pt-2 pb-8 transition-transform duration-300", showGrid ? 'translate-y-0' : 'translate-y-full')}>
+                    <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-3" onClick={() => setShowGrid(false)} />
+                    <div className="px-6 py-4 flex items-center justify-between">
+                        <h3 className="text-white font-bold text-lg">{t('test_player.navigation')}</h3>
+                        <span className="text-sm font-medium px-3 py-1 rounded-lg bg-white/5 text-gray-400">
+                            {answeredCount} / {questions.length} {t('test_player.answered')}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-3 px-6">
+                        {questions.map((q: any, i: number) => (
+                            <button
+                                key={q.id}
+                                onClick={() => { setCurrentIndex(i); setShowGrid(false) }}
+                                className={cn(
+                                    "w-12 h-12 rounded-2xl font-bold text-[15px] flex items-center justify-center transition-all",
+                                    currentIndex === i ? "bg-blue-500 text-white" : selectedAnswers[q.id] ? "bg-green-500/20 text-green-400" : "bg-white/5 text-gray-500"
+                                )}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="px-6 mt-6">
+                        <button onClick={() => setShowGrid(false)} className="w-full py-4 rounded-2xl bg-white/10 text-white font-bold">
+                            {t('test_player.close')}
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }

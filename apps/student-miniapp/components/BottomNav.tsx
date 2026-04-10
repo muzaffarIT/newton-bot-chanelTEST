@@ -4,50 +4,68 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, BookOpen, User, MessageCircle, ShoppingBag } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { motion } from 'framer-motion'
+import { useI18n } from '@/context/I18nContext'
 
 export function BottomNav() {
     const pathname = usePathname()
+    const { t } = useI18n()
 
     const navItems = [
-        { href: '/', icon: Home, label: 'Главная' },
-        { href: '/tests', icon: BookOpen, label: 'Тесты' },
-        { href: '/shop', icon: ShoppingBag, label: 'Магазин' },
-        { href: '/profile', icon: User, label: 'Кабинет' },
-        { href: '/support', icon: MessageCircle, label: 'Поддержка' },
+        { href: '/', icon: Home, labelKey: 'nav.home' },
+        { href: '/tests', icon: BookOpen, labelKey: 'nav.tests' },
+        { href: '/shop', icon: ShoppingBag, labelKey: 'nav.shop' },
+        { href: '/profile', icon: User, labelKey: 'nav.profile' },
+        { href: '/support', icon: MessageCircle, labelKey: 'nav.support' },
     ]
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
-            <nav className="glass rounded-[28px] px-2 py-3 flex justify-between items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] border border-white/10">
-                {navItems.map((item) => {
-                    const isActive = pathname === item.href
+        <nav
+            className="fixed bottom-0 left-0 right-0 z-50"
+            style={{
+                background: 'rgba(10, 10, 26, 0.97)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderTop: '1px solid rgba(255,255,255,0.07)',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            }}
+        >
+            <div className="flex items-center justify-around px-2 py-2">
+                {navItems.map(({ href, icon: Icon, labelKey }) => {
+                    const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
                     return (
                         <Link
-                            key={item.href}
-                            href={item.href}
-                            className="relative flex flex-col items-center justify-center w-16 h-12"
+                            key={href}
+                            href={href}
+                            className="flex flex-col items-center justify-center gap-1 flex-1 py-1.5 relative"
                         >
                             {isActive && (
-                                <motion.div
-                                    layoutId="bottomNavIndicator"
-                                    className="absolute inset-0 bg-blue-500/20 rounded-[20px] -z-10 border border-blue-400/30 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-                                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                <span
+                                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                                    style={{ background: 'linear-gradient(90deg, #4f6ef7, #7c5af5)' }}
                                 />
                             )}
-                            <motion.div
-                                whileTap={{ scale: 0.9 }}
+                            <Icon
+                                size={22}
+                                strokeWidth={isActive ? 2.5 : 1.8}
                                 className={cn(
-                                    "flex flex-col items-center gap-1 transition-colors duration-300",
-                                    isActive ? "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" : "text-gray-500 hover:text-gray-400"
+                                    'transition-all duration-200',
+                                    isActive
+                                        ? 'text-[#6b8aff] drop-shadow-[0_0_6px_rgba(107,138,255,0.6)]'
+                                        : 'text-gray-500'
+                                )}
+                            />
+                            <span
+                                className={cn(
+                                    'text-[10px] font-semibold transition-colors duration-200',
+                                    isActive ? 'text-[#6b8aff]' : 'text-gray-600'
                                 )}
                             >
-                                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "mb-0.5" : ""} />
-                            </motion.div>
+                                {t(labelKey)}
+                            </span>
                         </Link>
                     )
                 })}
-            </nav>
-        </div>
+            </div>
+        </nav>
     )
 }

@@ -340,3 +340,11 @@ model PointHistory {
   @@map("point_history")
 }
 
+/// Configurable app-level settings (key-value store)
+model AppSetting {
+  key        String   @id          // e.g., "consultant_username", "consultant_phone"
+  value      String                // e.g., "@support", "+998901234567"
+  updated_at DateTime @updatedAt
+
+  @@map("app_settings")
+}

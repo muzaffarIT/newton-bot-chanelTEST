@@ -199,28 +199,28 @@ export default function ProfilePage() {
             {/* Profile Info — Editable Fields */}
             <div className="space-y-3 mb-8">
                 <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">
-                    {t('profile.info')}
+                    {t('profile.info_section')}
                 </h2>
                 <div className="bg-white dark:bg-[#15151e] border border-gray-100 dark:border-white/5 rounded-[24px] divide-y divide-gray-100 dark:divide-white/5 overflow-hidden shadow-sm">
                     <EditableField
                         icon={User}
-                        label="Имя"
+                        label={t('profile.name')}
                         field="first_name"
                         value={profile?.first_name || ''}
-                        placeholder="Введите имя"
+                        placeholder={t('profile.name')}
                         onSave={handleSaveField}
                     />
                     <EditableField
                         icon={User}
-                        label="Фамилия"
+                        label={t('profile.name')}
                         field="last_name"
                         value={profile?.last_name || ''}
-                        placeholder="Введите фамилию"
+                        placeholder={t('profile.name')}
                         onSave={handleSaveField}
                     />
                     <EditableField
                         icon={Phone}
-                        label="Телефон"
+                        label={t('profile.phone')}
                         field="phone"
                         value={profile?.phone || ''}
                         placeholder="+998 XX XXX XX XX"
@@ -229,14 +229,14 @@ export default function ProfilePage() {
                     />
                     <EditableField
                         icon={GraduationCap}
-                        label="Класс"
+                        label={t('profile.grade')}
                         field="grade"
                         value={profile?.grade || ''}
                         placeholder="Напр., 10"
                         onSave={handleSaveField}
                     />
                 </div>
-                <p className="text-[10px] text-gray-500 ml-4">Нажмите на поле чтобы редактировать</p>
+                <p className="text-[10px] text-gray-500 ml-4">{t('profile.edit')}</p>
             </div>
 
             {/* Settings */}
@@ -244,41 +244,34 @@ export default function ProfilePage() {
                 <h2 className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest ml-4">
                     {t('profile.settings')}
                 </h2>
-                <div className="bg-white dark:bg-[#15151e] border border-gray-100 dark:border-white/5 rounded-[24px] space-y-1 p-2 shadow-sm">
-
-                    {/* Language switch */}
+                <div className="bg-white dark:bg-[#15151e] border border-gray-100 dark:border-white/5 rounded-[24px] p-2 shadow-sm">
                     <button
-                        onClick={handleLanguageSwitch}
                         disabled={langSaving}
-                        className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-gray-50 dark:active:bg-white/5 transition-colors text-left disabled:opacity-60"
+                        onClick={handleLanguageSwitch}
+                        className="w-full flex items-center gap-4 p-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-[18px] transition-colors"
                     >
-                        <div className="w-10 h-10 rounded-[12px] bg-blue-50 dark:bg-white/5 flex items-center justify-center text-blue-500 dark:text-blue-400">
+                        <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0">
                             <Globe size={18} />
                         </div>
-                        <div className="flex-1">
-                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Язык интерфейса</p>
-                            <p className="text-[15px] font-semibold text-gray-900 dark:text-white">
-                                {lang === 'ru' ? '🇷🇺 Русский' : "🇺🇿 O'zbek tili"}
-                            </p>
+                        <div className="flex-1 text-left">
+                            <div className="font-semibold text-sm">{t('profile.language_section')}</div>
+                            <div className="text-xs text-gray-500">{lang === 'ru' ? t('profile.lang_ru') : t('profile.lang_uz')}</div>
                         </div>
-                        {langSaving ? (
-                            <Loader2 size={16} className="text-gray-400 animate-spin" />
-                        ) : (
-                            <span className="text-[11px] text-gray-500 font-semibold border border-gray-200 dark:border-white/10 px-2 py-1 rounded-lg">
-                                {lang === 'ru' ? 'Switch to UZ' : "RU га o'tish"}
-                            </span>
-                        )}
+                        <div className="text-gray-300">
+                            {langSaving ? <Loader2 size={16} className="animate-spin" /> : <ChevronRightIcon size={16} />}
+                        </div>
                     </button>
 
-                    {/* Logout */}
                     <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-red-50 dark:active:bg-red-500/10 transition-colors text-left text-[15px] font-bold text-red-500"
+                        onClick={() => { if (confirm(t('profile.logout_confirm'))) handleLogout() }}
+                        className="w-full flex items-center gap-4 p-3 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-[18px] transition-colors text-red-500 mt-2"
                     >
-                        <div className="w-10 h-10 rounded-[12px] bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-500">
+                        <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0">
                             <LogOut size={18} />
                         </div>
-                        {t('profile.logout')}
+                        <div className="flex-1 text-left">
+                            <div className="font-semibold text-sm">{t('profile.logout')}</div>
+                        </div>
                     </button>
                 </div>
             </div>

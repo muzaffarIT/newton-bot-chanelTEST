@@ -124,3 +124,9 @@ export async function updateLanguage(language_code: string) {
     const { data } = await api.patch('/api/student/profile/language', { language_code })
     return data
 }
+
+// ─── App Settings (public) ────────────────────────────────────────────────────
+export async function fetchPublicSettings() {
+    const { data } = await api.get('/api/student/settings/public')
+    return data
+}

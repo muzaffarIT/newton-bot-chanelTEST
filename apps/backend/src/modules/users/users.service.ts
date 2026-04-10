@@ -73,4 +73,11 @@ export class UsersService {
             },
         });
     }
+
+    async updateLanguage(telegram_id: string, language_code: string): Promise<User> {
+        return this.prisma.user.update({
+            where: { telegram_id },
+            data: { language_code },
+        });
+    }
 }

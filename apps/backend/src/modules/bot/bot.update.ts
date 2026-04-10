@@ -1,4 +1,4 @@
-import { Update, Ctx, Start, Action, On, Command, Help, Hears, Next } from 'nestjs-telegraf';
+import { Update, Ctx, Start, Action, Command, Help, Hears } from 'nestjs-telegraf';
 import { Context, Scenes, Markup } from 'telegraf';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectBot } from 'nestjs-telegraf';

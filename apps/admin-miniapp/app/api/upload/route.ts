@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
     try {
-        // NextJS formData.get('file') returns a File object (which extends Blob)
+        const formData = await req.formData();
         const file = formData.get('file') as File;
 
         if (!file) {

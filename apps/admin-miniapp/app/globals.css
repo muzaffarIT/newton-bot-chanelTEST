@@ -2,30 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 :root {
-  --tg-bg: var(--tg-theme-bg-color, #0f0f1a);
-  --tg-text: var(--tg-theme-text-color, #ffffff);
-  --tg-hint: var(--tg-theme-hint-color, #8b9ab5);
-  --tg-button: var(--tg-theme-button-color, #3b82f6);
-  --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
-  --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #1a1a2e);
+    --bg: #080811;
+    --surface: #0e0e1a;
+    --surface-2: #131320;
+    --border: rgba(255,255,255,0.06);
+    --accent: #4f6ef7;
+    --accent-dim: rgba(79,110,247,0.12);
+    --success-dim: rgba(34,197,94,0.12);
+    --danger-dim: rgba(239,68,68,0.12);
+    --text: #e8e8f5;
+    --text-muted: #5a6480;
+    --tg-bg: var(--tg-theme-bg-color, #080811);
+    --tg-text: var(--tg-theme-text-color, #e8e8f5);
+    --tg-hint: var(--tg-theme-hint-color, #5a6480);
+    --tg-button: var(--tg-theme-button-color, #4f6ef7);
 }
+
+* { box-sizing: border-box; }
 
 body {
-  background-color: var(--tg-bg);
-  color: var(--tg-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overscroll-behavior: none;
-  -webkit-tap-highlight-color: transparent;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.card {
-  @apply rounded-2xl bg-[#1a1a2e] border border-white/5 p-4;
+::-webkit-scrollbar { width: 0; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Components ─────────────────────────────────── */
+@layer components {
+    .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 16px;
+        transition: all 0.2s;
+    }
+
+    .btn {
+        @apply px-4 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 flex items-center gap-2 select-none;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: white;
+        @apply btn;
+        box-shadow: 0 2px 12px rgba(79,110,247,0.3);
+    }
+
+    .btn-ghost {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border);
+        color: var(--text);
+        @apply btn;
+    }
+
+    .field-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .field-input {
+        width: 100%;
+        background: rgba(255,255,255,0.04);
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s;
+    }
+    .field-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+    }
+    .field-input::placeholder { color: var(--text-muted); }
+
+    select.field-input option { background: #13132a; color: var(--text); }
 }
 
-.badge-new      { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-900/40 text-blue-300; }
-.badge-registered { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-900/40 text-purple-300; }
-.badge-completed { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-900/40 text-green-300; }
-.badge-contacted { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-900/40 text-yellow-300; }
-.badge-enrolled  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/40 text-emerald-300; }
-.badge-rejected  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-900/40 text-red-300; }
+/* Badges */
+.badge-new        { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+.badge-registered { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: rgba(139,92,246,0.12); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.2); }
+.badge-completed  { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: rgba(34,197,94,0.10); color: #86efac; border: 1px solid rgba(34,197,94,0.2); }
+.badge-contacted  { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: rgba(251,191,36,0.10); color: #fde68a; border: 1px solid rgba(251,191,36,0.2); }
+.badge-enrolled   { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: rgba(16,185,129,0.10); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+.badge-rejected   { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: rgba(239,68,68,0.10); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+
+/* Animations */
+.page-fade-in { animation: pageIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes pageIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}

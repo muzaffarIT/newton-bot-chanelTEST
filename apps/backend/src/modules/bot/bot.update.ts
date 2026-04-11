@@ -99,7 +99,24 @@ export class BotUpdate implements OnModuleInit {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
 
         if (!user) {
-            // User not registered, enter Registration Wizard
+            // ─── IF ANONYMOUS USER CLICKS TEST LINK, LET THEM OPEN MINI APP INSTANTLY ───
+            if (payload && payload.startsWith('test_')) {
+                const testId = payload.replace('test_', '');
+                const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
+                const testUrl = `${studentUrl}/tests/${testId}/play`;
+                
+                await ctx.reply(
+                    '👋 Добро пожаловать!\n\nНажмите кнопку ниже, чтобы немедленно приступить к тесту. Регистрация потребуется только перед получением результатов.',
+                    {
+                        reply_markup: {
+                            inline_keyboard: [[{ text: '📝 Приступить к тесту', web_app: { url: testUrl } }]]
+                        }
+                    }
+                );
+                return;
+            }
+
+            // Otherwise, enter Registration Wizard
             this.logger.log(`User ${ctx.from.id} is new. Starting REGISTRATION_WIZARD.`);
             await ctx.scene.enter('REGISTRATION_WIZARD', { test_id: payload });
             return;
@@ -283,14 +300,16 @@ export class BotUpdate implements OnModuleInit {
     async setLangRu(@Ctx() ctx: BotContext) {
         await this.usersService.updateLanguage(ctx.from.id.toString(), 'ru');
         await ctx.answerCbQuery('Язык изменен на Русский 🇷🇺');
-        await ctx.reply('✅ Язык успешно изменен на Русский.\nИспользуйте /start для обновления меню.');
+        await ctx.deleteMessage(); // Optionally delete the select language message
+        await this.onStart(ctx);
     }
 
     @Action('set_lang_uz')
     async setLangUz(@Ctx() ctx: BotContext) {
         await this.usersService.updateLanguage(ctx.from.id.toString(), 'uz');
         await ctx.answerCbQuery('Til O\'zbek tiliga o\'zgartirildi 🇺🇿');
-        await ctx.reply('✅ Til muvaffaqiyatli O\'zbek tiliga o\'zgartirildi.\nMenyuni yangilash uchun /start dan foydalaning.');
+        await ctx.deleteMessage(); // Optionally delete the select language message
+        await this.onStart(ctx);
     }
 
     /** Check if the given telegram user ID belongs to an admin */

@@ -143,12 +143,21 @@ export class AuthService {
     async loginWithStudentTelegramInitData(initDataRaw: string): Promise<{ accessToken: string; user: any }> {
         const tgUser = this.validateTelegramInitData(initDataRaw);
 
-        const user = await this.prisma.user.findUnique({
+        let user = await this.prisma.user.findUnique({
             where: { telegram_id: tgUser.id.toString() },
         });
 
+        // ─── AUTO-REGISTER UNKNOWN STUDENTS TO ALLOW IMMEDIATE TEST TAKING ───
         if (!user) {
-            throw new UnauthorizedException('User not found. Please register via the bot first.');
+            user = await this.prisma.user.create({
+                data: {
+                    telegram_id: tgUser.id.toString(),
+                    first_name: tgUser.first_name || 'Студент',
+                    last_name: tgUser.last_name || '',
+                    language_code: tgUser.language_code || 'ru',
+                }
+            });
+            this.logger.log(`Auto-registered new student via MiniApp: ${user.telegram_id}`);
         }
 
         const payload = { sub: user.id, telegram_id: user.telegram_id, sub_type: 'student' };

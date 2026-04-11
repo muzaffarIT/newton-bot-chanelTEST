@@ -106,7 +106,9 @@ export default function Dashboard() {
                 >
                     <Flame size={22} className="text-orange-400 animate-float shrink-0" />
                     <p className="text-[13px] font-bold text-orange-300">
-                        Ты прошёл {completedCount} тест{completedCount === 1 ? '' : 'а'}! Продолжай в том же духе 🔥
+                        {lang === 'ru' 
+                            ? `Ты прошёл ${completedCount} тест${completedCount === 1 ? '' : 'а'}! Продолжай в том же духе 🔥` 
+                            : `Siz ${completedCount} ta test topshirdingiz! Shu ruhda davom eting 🔥`}
                     </p>
                 </motion.div>
             )}
@@ -128,10 +130,10 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-[15px] font-extrabold text-white flex items-center gap-2">
                         <Zap size={16} className="text-amber-400" fill="currentColor" />
-                        Рекомендуем сегодня
+                        {t('dashboard.featured_title')}
                     </h2>
                     <Link href="/tests" className="text-[13px] font-semibold" style={{ color: 'var(--accent)' }}>
-                        Все → 
+                        {t('dashboard.all')} → 
                     </Link>
                 </div>
 
@@ -148,14 +150,14 @@ export default function Dashboard() {
 
                             <div className="relative z-10">
                                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide uppercase mb-4" style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}>
-                                    <Target size={11} /> Диагностика
+                                    <Target size={11} /> {t('tests.exam') || 'Диагностика'}
                                 </div>
                                 <h3 className="text-xl font-black text-white mb-1 leading-snug">{featuredTest.title}</h3>
                                 <p className="text-indigo-200/70 text-[13px] mb-5">
-                                    {featuredTest.questions?.length ?? 0} вопросов · {featuredTest.duration_minutes} мин
+                                    {featuredTest.questions?.length ?? 0} {t('tests.questions')} · {featuredTest.duration_minutes} {t('tests.minutes')}
                                 </p>
                                 <div className="inline-flex items-center gap-2 py-3 px-6 rounded-[14px] font-bold text-[15px]" style={{ background: 'white', color: '#312e81' }}>
-                                    <Zap size={16} fill="currentColor" /> Начать тест
+                                    <Zap size={16} fill="currentColor" /> {t('dashboard.start_test')}
                                 </div>
                             </div>
                         </motion.div>
@@ -163,7 +165,7 @@ export default function Dashboard() {
                 ) : (
                     <div className="card text-center py-10 border-dashed" style={{ borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.1)' }}>
                         <BookOpen className="text-gray-600 mx-auto mb-2" size={28} />
-                        <p className="text-gray-500 text-[14px]">Тесты скоро появятся</p>
+                        <p className="text-gray-500 text-[14px]">{t('tests.no_results')}</p>
                     </div>
                 )}
             </motion.section>
@@ -176,16 +178,16 @@ export default function Dashboard() {
                     transition={{ ...spring, delay: 0.3 }}
                     className="px-5 mb-6"
                 >
-                    <h2 className="text-[15px] font-extrabold text-white mb-3">Последний результат</h2>
+                    <h2 className="text-[15px] font-extrabold text-white mb-3">{t('dashboard.recent_title')}</h2>
                     <Link href={`/results/${recentResult.id}`}>
                         <motion.div whileTap={{ scale: 0.97 }} className="card flex items-center gap-4">
                             <div className="w-14 h-14 rounded-[16px] flex items-center justify-center font-black text-lg shrink-0" style={{ background: 'linear-gradient(135deg, rgba(79,110,247,0.2), rgba(124,58,237,0.2))' }}>
                                 {Math.round(recentResult.score_percentage)}%
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-bold text-white truncate">{recentResult.session?.test?.title || 'Тест'}</p>
+                                <p className="font-bold text-white truncate">{recentResult.session?.test?.title || (lang === 'ru' ? 'Тест' : 'Test')}</p>
                                 <p className="text-[12px] text-gray-500 mt-0.5">
-                                    {new Date(recentResult.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                                    {new Date(recentResult.created_at).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'uz-UZ', { day: 'numeric', month: 'long' })}
                                 </p>
                             </div>
                             <ChevronRight size={18} className="text-gray-600 shrink-0" />
@@ -203,7 +205,9 @@ export default function Dashboard() {
                 style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
             >
                 <p className="text-[13px] text-gray-400 leading-relaxed italic">
-                    "Каждый эксперт когда-то был новичком. Каждый профессионал начинал с одного шага." — Харви Спектер
+                    {lang === 'ru' 
+                        ? '"Каждый эксперт когда-то был новичком. Каждый профессионал начинал с одного шага." — Харви Спектер'
+                        : '"Har bir ekspert qachondir boshlovchi bo\'lgan. Har bir professional bitta qadamdan boshlagan." — Harvi Spekter'}
                 </p>
             </motion.div>
         </motion.main>

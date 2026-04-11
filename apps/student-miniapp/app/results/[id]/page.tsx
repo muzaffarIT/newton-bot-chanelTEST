@@ -13,21 +13,109 @@ export default function ResultPage() {
     const { id: resultId } = useParams()
     const router = useRouter()
 
+    const { data: profile, refetch: refetchProfile } = useQuery({
+        queryKey: ['profile'],
+        queryFn: fetchProfile
+    })
+
     const { data: result, isLoading } = useQuery({
         queryKey: ['result', resultId],
         queryFn: () => fetchResultDetail(resultId as string)
     })
 
-    if (isLoading) return <div className="min-h-screen flex items-center justify-center">{t('results.loading')}</div>
+    const [isSubmittingInfo, setIsSubmittingInfo] = useState(false)
+    const [infoForm, setInfoForm] = useState({ first_name: '', last_name: '', phone: '' })
+
+    // Auto-fill form from whatever profile has
+    useEffect(() => {
+        if (profile) {
+            setInfoForm({
+                first_name: profile.first_name || '',
+                last_name: profile.last_name || '',
+                phone: profile.phone || ''
+            })
+        }
+    }, [profile])
+
+    if (isLoading || !profile) return <div className="min-h-screen flex items-center justify-center">{t('results.loading')}</div>
     if (!result) return <div className="p-10 text-center">{t('results.not_found')}</div>
+
+    const needsInfo = (!profile.phone || !profile.last_name || profile.first_name === 'Студент');
 
     const score = result.correct_count
     const total = result.correct_count + result.incorrect_count
     const percentage = result.score_percentage
     const skills = result.skill_breakdown ? Object.values(result.skill_breakdown) : []
 
+    const handleSaveInfo = async () => {
+        if (!infoForm.first_name.trim() || !infoForm.last_name.trim() || !infoForm.phone.trim()) {
+            return alert('Пожалуйста, заполните все поля!')
+        }
+        setIsSubmittingInfo(true)
+        try {
+            await updateProfile(infoForm)
+            await refetchProfile()
+        } catch (e) {
+            alert('Ошибка при сохранении данных')
+        } finally {
+            setIsSubmittingInfo(false)
+        }
+    }
+
     return (
         <main className="pb-32 page-fade-in relative min-h-screen">
+            {needsInfo && (
+                <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-5">
+                    <div className="bg-[#1c1c28] p-6 rounded-[28px] w-full max-w-sm border border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                            <Zap size={32} className="text-blue-400" />
+                        </div>
+                        <h2 className="text-xl font-bold text-center text-white mb-2">Отличная работа! 🎉</h2>
+                        <p className="text-sm text-center text-gray-400 mb-6 leading-relaxed">
+                            Чтобы увидеть детальный разбор ошибок и получить диагностический PDF-отчет, заполните профиль:
+                        </p>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs text-gray-400 ml-1 mb-1 block">Имя *</label>
+                                <input 
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="Иван"
+                                    value={infoForm.first_name}
+                                    onChange={e => setInfoForm(p => ({ ...p, first_name: e.target.value }))}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400 ml-1 mb-1 block">Фамилия *</label>
+                                <input 
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="Иванов"
+                                    value={infoForm.last_name}
+                                    onChange={e => setInfoForm(p => ({ ...p, last_name: e.target.value }))}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400 ml-1 mb-1 block">Телефон *</label>
+                                <input 
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="+998 90 123 45 67"
+                                    value={infoForm.phone}
+                                    onChange={e => setInfoForm(p => ({ ...p, phone: e.target.value }))}
+                                />
+                            </div>
+                            
+                            <button 
+                                onClick={handleSaveInfo}
+                                disabled={isSubmittingInfo}
+                                className="w-full py-4 mt-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-2xl transition-all disabled:opacity-50"
+                            >
+                                {isSubmittingInfo ? 'Сохранение...' : 'Узнать результат'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Background Decor */}
             <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
             <div className="absolute bottom-[20%] left-[-10%] w-80 h-80 bg-emerald-600/10 rounded-full blur-[100px] -z-10 pointer-events-none" />

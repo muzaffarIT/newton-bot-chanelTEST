@@ -27,60 +27,20 @@ export async function POST(req: NextRequest) {
         const isPdf = fileType === 'application/pdf';
         const isDoc = fileType.includes('word') || fileType.includes('document');
 
-        if (isImage) {
-            const errors: string[] = [];
-
-            for (const host of TELEGRAPH_HOSTS) {
-                try {
-                    const uploadFormData = new FormData();
-                    uploadFormData.append('file', new Blob([buffer], { type: fileType }), fileName);
-
-                    const response = await fetch(`${host}/upload`, {
-                        method: 'POST',
-                        body: uploadFormData,
-                    });
-
-                    if (!response.ok) {
-                        const text = await response.text();
-                        errors.push(`${host}: HTTP ${response.status} — ${text}`);
-                        continue;
-                    }
-
-                    const data = await response.json();
-
-                    if (Array.isArray(data) && data[0]?.src) {
-                        return NextResponse.json({ url: host + data[0].src });
-                    }
-
-                    errors.push(`${host}: unexpected response: ${JSON.stringify(data)}`);
-                } catch (e: any) {
-                    errors.push(`${host}: ${e.message}`);
-                }
-            }
-
-            console.error('[upload] all Telegraph hosts failed:', errors);
+        // Allow up to 5MB file sizes to be safely encoded into base64.
+        const MAX_SIZE = 5 * 1024 * 1024;
+        
+        if (buffer.length > MAX_SIZE) {
             return NextResponse.json(
-                { error: 'Загрузка изображения не удалась. Попробуйте другой формат.', details: errors },
-                { status: 502 }
-            );
-        }
-
-        // ─── PDF / Documents: return as base64 data URL ───────────────────────
-        if (isPdf || isDoc) {
-            const base64 = buffer.toString('base64');
-            const dataUrl = `data:${fileType};base64,${base64}`;
-
-            // For small files (< 2MB) return data URL directly
-            if (buffer.length < 2 * 1024 * 1024) {
-                return NextResponse.json({ url: dataUrl, fileName, fileType, isDocument: true });
-            }
-
-            // Large files: return error with guidance
-            return NextResponse.json(
-                { error: `Файл слишком большой (${Math.round(buffer.length / 1024 / 1024)}МБ). Для документов макс. 2МБ.` },
+                { error: `Файл слишком большой (${Math.round(buffer.length / 1024 / 1024)}МБ). Максимальный размер 5МБ.` },
                 { status: 413 }
             );
         }
+
+        const base64 = buffer.toString('base64');
+        const dataUrl = `data:${fileType};base64,${base64}`;
+
+        return NextResponse.json({ url: dataUrl, fileName, fileType, isDocument: fileType === 'application/pdf' || fileType.includes('document') });
 
         return NextResponse.json(
             { error: `Неподдерживаемый тип файла: ${fileType}. Используйте JPG, PNG, WebP, GIF или PDF.` },

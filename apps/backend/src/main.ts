@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+import { json, urlencoded } from 'express';
+
 async function bootstrap() {
     const logger = new Logger('Bootstrap');
     const app = await NestFactory.create(AppModule);
@@ -10,6 +12,10 @@ async function bootstrap() {
     // 0. API Prefix and Proxy Trust
     app.setGlobalPrefix('api');
     (app as any).set('trust proxy', 1);
+
+    // 0.5 Increase body size limit for Base64 image uploads
+    app.use(json({ limit: '50mb' }));
+    app.use(urlencoded({ extended: true, limit: '50mb' }));
 
     // 1. Global validation pipe
     app.useGlobalPipes(new ValidationPipe({

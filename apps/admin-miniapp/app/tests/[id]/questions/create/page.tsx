@@ -36,6 +36,9 @@ export default function CreateQuestionPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['test', testId] })
             router.back()
+        },
+        onError: (err: any) => {
+            alert('Ошибка: ' + (err.response?.data?.message || err.message))
         }
     })
 

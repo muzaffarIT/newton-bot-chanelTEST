@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { api, fetchScheduledPosts, fetchChannels, fetchTests, cancelScheduledPost } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
 import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Clock, Send, Plus, X, Globe, MessageSquare, AlertCircle, CheckCircle, Clock3, Trash2 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { color: string, bg: string, icon: any, label: string }> = {
@@ -137,7 +136,7 @@ export default function SchedulePage() {
                         const conf = STATUS_CONFIG[post.status] || STATUS_CONFIG['PENDING']
                         const Icon = conf.icon
                         return (
-                            <motion.div key={post.id} initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} className="p-5 rounded-[24px] bg-[#161625] border border-white/5 shadow-lg relative overflow-hidden group">
+                            <div key={post.id} className="p-5 rounded-[24px] bg-[#161625] border border-white/5 shadow-lg relative overflow-hidden group animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className={cn("absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full pointer-events-none opacity-20", conf.bg.replace('/10', ''))} />
                                 
                                 <div className="flex justify-between items-start mb-3 relative z-10">
@@ -176,25 +175,22 @@ export default function SchedulePage() {
                                         {post.error_log}
                                     </div>
                                 )}
-                            </motion.div>
+                            </div>
                         )
                     })
                 )}
             </div>
 
             {/* Create Modal */}
-            <AnimatePresence>
-                {showForm && (
-                    <div className="fixed inset-0 z-50 flex flex-col justify-end">
-                        <motion.div 
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-                            onClick={() => setShowForm(false)} 
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div 
-                            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative bg-[#161625] rounded-t-[32px] p-6 pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-h-[90vh] overflow-y-auto"
-                        >
+            {showForm && (
+                <div className="fixed inset-0 z-50 flex flex-col justify-end animate-in fade-in duration-200">
+                    <div 
+                        onClick={() => setShowForm(false)} 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    />
+                    <div 
+                        className="relative bg-[#161625] rounded-t-[32px] p-6 pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-full duration-300"
+                    >
                             <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
                             <h2 className="text-xl font-bold text-white mb-6">Создать публикацию</h2>
 
@@ -267,7 +263,7 @@ export default function SchedulePage() {
                                 </div>
 
                                 {!publishNow && (
-                                    <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="pt-2">
+                                    <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Точное время отправки</label>
                                         <input
                                             type="datetime-local"
@@ -275,7 +271,7 @@ export default function SchedulePage() {
                                             value={scheduledAt}
                                             onChange={e => setScheduledAt(e.target.value)}
                                         />
-                                    </motion.div>
+                                    </div>
                                 )}
 
                                 {/* Submit */}
@@ -287,10 +283,9 @@ export default function SchedulePage() {
                                     {isSubmitting ? <span className="animate-pulse">Подготовка...</span> : publishNow ? <><Send size={18}/> Опубликовать</> : <><Calendar size={18}/> Запланировать</>}
                                 </button>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
                 )}
-            </AnimatePresence>
 
             <BottomNav />
 

@@ -1,5 +1,7 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
+
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { fetchResultDetail, requestConsultation, fetchProfile, updateProfile } from '@/lib/api'

@@ -91,7 +91,20 @@ export class SessionsService {
 
         this.eventEmitter.emit('test.started', new TestStartedEvent(userId, session.id));
 
-        return session;
+        // Return fully populated session
+        return this.prisma.testSession.findUnique({
+            where: { id: session.id },
+            include: {
+                test: {
+                    include: {
+                        questions: {
+                            include: { options: true }
+                        }
+                    }
+                },
+                answers: true
+            }
+        });
     }
 
     /**
@@ -105,6 +118,13 @@ export class SessionsService {
                 status: SessionStatus.IN_PROGRESS,
             },
             include: {
+                test: {
+                    include: {
+                        questions: {
+                            include: { options: true }
+                        }
+                    }
+                },
                 answers: true,
             },
         });

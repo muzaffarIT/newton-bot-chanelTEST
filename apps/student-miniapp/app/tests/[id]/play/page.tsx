@@ -32,7 +32,7 @@ export default function TestPlayer() {
             setLoading(true)
             try {
                 // 1. Try fetching an existing active session
-                let activeSession = await fetchActiveSession()
+                let activeSession = await fetchActiveSession(testId as string)
 
                 // 2. If no session exists (or it's for a different test), start a new one
                 if (!activeSession || (testId && activeSession.test_id !== testId)) {

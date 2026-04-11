@@ -57,8 +57,8 @@ export async function fetchAvailableTests() {
     return data
 }
 
-export async function fetchActiveSession() {
-    const { data } = await api.get('/api/student/sessions/active')
+export async function fetchActiveSession(testId: string) {
+    const { data } = await api.get(`/api/student/sessions/active/${testId}`)
     return data
 }
 

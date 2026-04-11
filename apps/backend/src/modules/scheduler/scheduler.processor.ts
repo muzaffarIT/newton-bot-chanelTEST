@@ -35,8 +35,14 @@ export class SchedulerProcessor extends WorkerHost {
                 ]).reply_markup;
             }
 
+            const channel = await this.prisma.channel.findUnique({
+                where: { id: channelId }
+            });
+
+            if (!channel) throw new Error(`Channel not found in DB: ${channelId}`);
+
             await this.bot.telegram.sendMessage(
-                channelId,
+                channel.telegram_id,
                 messageText,
                 {
                     parse_mode: 'Markdown',

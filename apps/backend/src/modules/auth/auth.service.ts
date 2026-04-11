@@ -83,7 +83,7 @@ export class AuthService {
     /**
      * Internal method to validate Telegram HMAC signature.
      */
-    private validateTelegramInitData(initDataRaw: string): { id: number; username?: string } {
+    private validateTelegramInitData(initDataRaw: string): { id: number; username?: string; first_name?: string; last_name?: string; language_code?: string } {
         const botToken = this.config.get<string>('BOT_TOKEN');
         if (!botToken) throw new UnauthorizedException('BOT_TOKEN not configured');
 

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { fetchResultDetail, requestConsultation } from '@/lib/api'
+import { fetchResultDetail, requestConsultation, fetchProfile, updateProfile } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
 import { CheckCircle2, ChevronRight, Share2, Award, Zap, AlertTriangle, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'

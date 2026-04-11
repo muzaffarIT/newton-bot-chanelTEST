@@ -27,10 +27,6 @@ export default function TestsPage() {
             router.push(`/tests/${testId}/play`)
         },
         onError: (err: any) => {
-            alert(err.response?.data?.message || 'Ошибка запуска теста. Попробуйте ещё раз.')
-        }
-    })
-
     const filteredTests = tests?.filter((test: any) =>
         test.title.toLowerCase().includes(search.toLowerCase()) ||
         test.description?.toLowerCase().includes(search.toLowerCase())
@@ -84,8 +80,7 @@ export default function TestsPage() {
                     ))
                 ) : (
                     <AnimatePresence>
-                        {filteredTests?.map((test: any, i: number) => {
-                            const isLoading = startMutation.isPending && startMutation.variables === test.id
+                        {filteredTests?.filter((test: any) => test.questions && test.questions.length > 0).map((test: any, i: number) => {
                             return (
                                 <motion.div
                                     key={test.id}
@@ -93,52 +88,56 @@ export default function TestsPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ ...spring, delay: i * 0.06 }}
-                                    onClick={() => !isLoading && startMutation.mutate(test.id)}
-                                    className={cn("card cursor-pointer select-none", isLoading && "opacity-60 pointer-events-none")}
+                                    onClick={() => router.push(`/tests/${test.id}/play`)}
+                                    className="card cursor-pointer select-none"
                                     whileTap={{ scale: 0.97 }}
                                     style={{ touchAction: 'manipulation' }}
                                 >
                                     <div className="flex justify-between items-start mb-3">
-                                        <div className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider" style={{ background: 'rgba(79,110,247,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
-                                            {test.duration_minutes > 60 ? `📋 ${t('tests.exam')}` : `⚡ ${t('tests.test')}`}
+                                        <div className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 border border-indigo-500/20">
+                                            <Zap size={10} className="fill-indigo-400" /> {t('tests.test')}
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-gray-500 text-[12px]">
-                                            <Clock size={12} />
-                                            {test.duration_minutes} мин
+                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                                            <Clock size={12} /> {test.duration_minutes || 60} {t('tests.minutes')}
                                         </div>
                                     </div>
+                                    
+                                    <h3 className="text-xl font-bold text-white leading-tight mb-2 pr-6">
+                                        {test.title}
+                                    </h3>
+                                    {test.description && (
+                                        <p className="text-sm text-gray-400 mb-6 line-clamp-2 leading-relaxed">
+                                            {test.description}
+                                        </p>
+                                    )}
 
-                                    <h3 className="font-extrabold text-[17px] text-white mb-1 leading-snug">{test.title}</h3>
-                                    <p className="text-gray-500 text-[13px] line-clamp-2 leading-relaxed mb-4">
-                                        {test.description || 'Нажмите, чтобы начать прохождение теста'}
-                                    </p>
-
-                                    <div className="flex items-center justify-between" style={{ paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                                        <span className="text-gray-600 text-[13px] flex items-center gap-1.5">
-                                            <BookOpen size={14} />
-                                            {test._count?.questions || test.questions?.length || 0} {t('tests.questions')}
-                                        </span>
-                                        <div className="flex items-center gap-2 text-[13px] font-bold px-4 py-2 rounded-xl" style={{ background: 'rgba(79,110,247,0.12)', color: '#818cf8' }}>
-                                            {isLoading ? t('tests.loading') : <><Zap size={14} /> {t('tests.start')}</>}
+                                    <div className="flex items-center justify-between mt-auto bg-black/20 -mx-5 -mb-5 px-5 py-3 border-t border-white/5 rounded-b-[20px]">
+                                        <div className="flex items-center gap-2 text-gray-400 text-xs font-medium">
+                                            <BookOpen size={14} className="text-indigo-400/70" />
+                                            {test.questions?.length || 0} {t('tests.questions')}
+                                        </div>
+                                        <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 text-white font-semibold text-[13px] group-hover:bg-indigo-500 transition-colors">
+                                            <Zap size={14} className="text-indigo-400" />
+                                            {t('tests.start')}
                                         </div>
                                     </div>
                                 </motion.div>
                             )
                         })}
+                        {filteredTests?.filter((test: any) => test.questions && test.questions.length > 0).length === 0 && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="py-16 flex flex-col items-center justify-center text-center px-4"
+                            >
+                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10">
+                                    <Search className="text-gray-500" size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold text-white mb-1">{t('tests.no_results')}</h3>
+                                <p className="text-gray-500 text-[13px]">{t('tests.no_results_sub')}</p>
+                            </motion.div>
+                        )}
                     </AnimatePresence>
-                )}
-
-                {!isLoading && filteredTests?.length === 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="card text-center py-16"
-                        style={{ borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.08)' }}
-                    >
-                        <Search className="mx-auto text-gray-700 mb-3" size={32} />
-                        <p className="text-gray-500 font-semibold">{t('tests.no_results')}</p>
-                        <p className="text-gray-700 text-[13px] mt-1">{t('tests.no_results_sub')}</p>
-                    </motion.div>
                 )}
             </div>
         </motion.main>

@@ -25,10 +25,16 @@ export class SchedulerService {
         @InjectBot() private readonly bot: Telegraf,
     ) { }
 
-    generateDeepLink(testId?: string): string {
+    async generateDeepLink(testId?: string): Promise<string> {
         if (!testId) return '';
-        const botUsername = this.config.get<string>('BOT_USERNAME') || 'NewtonAcademyBot';
-        return `https://t.me/${botUsername}?start=test_${testId}`;
+        try {
+            const botInfo = await this.bot.telegram.getMe();
+            return `https://t.me/${botInfo.username}?start=test_${testId}`;
+        } catch (e) {
+            this.logger.error('Failed to get bot info', e);
+            const fallback = this.config.get<string>('BOT_USERNAME') || 'NewtonAcademyBot';
+            return `https://t.me/${fallback}?start=test_${testId}`;
+        }
     }
 
     async generateMessageTemplate(testId?: string, lang: string = 'ru'): Promise<string> {
@@ -83,7 +89,7 @@ export class SchedulerService {
             // ─── DIRECT PUBLISH ───────────────────────────────────────────────────
             try {
                 // Build post with deep link button if test is attached
-                const deepLink = this.generateDeepLink(testId);
+                const deepLink = await this.generateDeepLink(testId);
                 const extra: any = { parse_mode: 'Markdown' };
 
                 if (testId && deepLink) {
@@ -169,7 +175,7 @@ export class SchedulerService {
                 scheduledPostId: scheduledPost.id,
                 publishAt,
                 publishedNow: false,
-                deepLink: this.generateDeepLink(testId),
+                deepLink: await this.generateDeepLink(testId),
             };
         }
     }

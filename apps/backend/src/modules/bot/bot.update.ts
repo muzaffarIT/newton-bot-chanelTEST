@@ -114,7 +114,7 @@ export class BotUpdate implements OnModuleInit {
         if (isAdmin) {
             keyboardOptions = [
                 ['📢 Опубликовать пост', '➕ Добавить канал'],
-                ['⚙️ Настройки администратора'],
+                ['⚙️ Настройки администратора', '🎓 Кабинет'],
             ];
         } else {
             keyboardOptions = isRu
@@ -134,7 +134,7 @@ export class BotUpdate implements OnModuleInit {
         let inlineKeyboard = [];
         
         if (isAdmin && adminUrl) {
-           inlineKeyboard = [[{ text: '🛠 Открыть Админ-панель', web_app: { url: `${adminUrl}/dashboard` } }]];
+           inlineKeyboard = [[{ text: '🛠 Открыть Админ-панель', web_app: { url: adminUrl } }]];
         } else if (!isAdmin && studentUrl) {
            inlineKeyboard = [[{ text: isRu ? '🎓 Открыть Личный Кабинет' : '🎓 Kabinetni ochish', web_app: { url: studentUrl } }]];
         }
@@ -149,11 +149,19 @@ export class BotUpdate implements OnModuleInit {
 
         if (payload && payload.startsWith('test_')) {
             const testId = payload.replace('test_', '');
-            await ctx.scene.enter('TEST_SCENE', { testId });
+            await ctx.reply(
+                isRu ? '🎯 Нажмите кнопку ниже, чтобы начать тест:' : '🎯 Testni boshlash uchun pastdagi tugmani bosing:',
+                {
+                    parse_mode: 'Markdown',
+                    ...Markup.inlineKeyboard([
+                        [Markup.button.webApp(isRu ? '📝 Начать тест' : '📝 Testni boshlash', `${studentUrl}/tests/${testId}/play`)]
+                    ])
+                }
+            );
         }
     }
 
-    @Hears(['🎓 Кабинет', '🎓 Kabinet', '📝 Тесты', '📝 Testlar', '⚙️ Настройки администратора'])
+    @Hears(['🎓 Кабинет', '🎓 Kabinet', '📝 Тесты', '📝 Testlar'])
     async onCabinet(@Ctx() ctx: BotContext) {
         const user = await this.usersService.findByTelegramId(ctx.from.id.toString());
         const lang = user?.language_code || 'ru';
@@ -166,17 +174,36 @@ export class BotUpdate implements OnModuleInit {
         }
 
         const studentUrl = this.config.get<string>('STUDENT_MINI_APP_URL');
-        const adminUrl = this.config.get<string>('ADMIN_MINI_APP_URL');
-
-        const btnText = isAdmin ? '🛠 Открыть Админ-панель' : (lang === 'ru' ? '🎓 Платформа Newton' : '🎓 Newton platformasi');
-        const urlToOpen = isAdmin ? `${adminUrl}/dashboard` : studentUrl;
 
         await ctx.reply(
-            isAdmin ? '🔗 Нажмите кнопку ниже для управления платформой:' : (lang === 'ru' ? '🔗 Нажмите на кнопку ниже, чтобы открыть платформу:' : '🔗 Platformani ochish uchun pastdagi tugmani bosing:'),
+            lang === 'ru' ? '🔗 Нажмите на кнопку ниже, чтобы открыть платформу:' : '🔗 Platformani ochish uchun pastdagi tugmani bosing:',
             {
                 parse_mode: 'Markdown',
                 ...Markup.inlineKeyboard([
-                    [Markup.button.webApp(btnText, urlToOpen || '')]
+                    [Markup.button.webApp(lang === 'ru' ? '🎓 Платформа Newton' : '🎓 Newton platformasi', studentUrl || '')]
+                ])
+            }
+        );
+    }
+
+    @Hears(['⚙️ Настройки администратора'])
+    async onAdminSettings(@Ctx() ctx: BotContext) {
+        const currentId = ctx.from.id.toString();
+        const isAdmin = await this.isAdminUser(currentId);
+
+        if (!isAdmin) {
+            await ctx.reply('⚠️ У вас нет прав для этого действия.');
+            return;
+        }
+
+        const adminUrl = this.config.get<string>('ADMIN_MINI_APP_URL');
+
+        await ctx.reply(
+            '🔗 Нажмите кнопку ниже для управления платформой:',
+            {
+                parse_mode: 'Markdown',
+                ...Markup.inlineKeyboard([
+                    [Markup.button.webApp('🛠 Открыть Админ-панель', adminUrl || '')]
                 ])
             }
         );

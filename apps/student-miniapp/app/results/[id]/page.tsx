@@ -133,13 +133,32 @@ export default function ResultPage() {
                 </div>
             </section>
 
-            <div className="flex justify-center mt-10">
-                <button className="text-gray-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-bold bg-white/5 px-6 py-3 rounded-full">
-                    <Share2 size={16} /> Поделиться результатом
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10 print:hidden">
+                <button
+                    onClick={() => window.print()}
+                    className="flex-1 max-w-[250px] mx-auto py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Скачать PDF
+                </button>
+                <button className="flex-1 max-w-[250px] mx-auto py-4 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all">
+                    <Share2 size={20} /> Поделиться
                 </button>
             </div>
 
-            <BottomNav />
+            <div className="print:hidden">
+                <BottomNav />
+            </div>
+
+            <style dangerouslySetInnerHTML={{__html: `
+                @media print {
+                    @page { margin: 10mm; }
+                    body { background: white !important; color: black !important; }
+                    .glass-card { background: none !important; border: 1px solid #ddd !important; border-radius: 8px !important; color: black !important; padding: 16px !important; margin-bottom: 12px; page-break-inside: avoid; }
+                    .text-white, .text-gray-300, .text-gray-400, .text-emerald-400, .text-blue-400, .text-orange-400 { color: black !important; }
+                    .page-fade-in { padding-bottom: 0 !important; }
+                }
+            `}} />
         </main>
     )
 }

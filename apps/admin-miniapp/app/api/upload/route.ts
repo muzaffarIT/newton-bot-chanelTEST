@@ -27,36 +27,17 @@ export async function POST(req: NextRequest) {
         const isPdf = fileType === 'application/pdf';
         const isDoc = fileType.includes('word') || fileType.includes('document');
 
-        // ─── Images: upload to Telegraph ─────────────────────────────────────
         if (isImage) {
             const errors: string[] = [];
 
             for (const host of TELEGRAPH_HOSTS) {
                 try {
-                    const boundary = `----FormBoundary${Math.random().toString(36).slice(2)}`;
-
-                    const bodyParts: Buffer[] = [
-                        Buffer.from(
-                            `--${boundary}\r\n` +
-                            `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n` +
-                            `Content-Type: ${fileType}\r\n\r\n`
-                        ),
-                        buffer,
-                        Buffer.from(`\r\n--${boundary}--\r\n`),
-                    ];
-
-                    const body = Buffer.concat(bodyParts);
+                    const uploadFormData = new FormData();
+                    uploadFormData.append('file', new Blob([buffer], { type: fileType }), fileName);
 
                     const response = await fetch(`${host}/upload`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-                            'Content-Length': String(body.length),
-                            'Accept': 'application/json',
-                            'Origin': 'https://telegra.ph',
-                            'Referer': 'https://telegra.ph/',
-                        },
-                        body,
+                        body: uploadFormData,
                     });
 
                     if (!response.ok) {

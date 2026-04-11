@@ -181,11 +181,15 @@ export class RegistrationWizard {
                 await this.usersService.updateUser(ctx.from.id.toString(), dto);
             }
 
+            const testId = state['test_id'];
+            const studentUrl = process.env.STUDENT_MINI_APP_URL || '';
+            const finalUrl = testId ? `${studentUrl}/tests/${testId}/play` : studentUrl;
+
             const successMsg = lang === 'ru' ? '✅ Вы успешно зарегистрированы!' : '✅ Muvaffaqiyatli ro\'yxatdan o\'tdingiz!';
             await ctx.editMessageText(successMsg, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
                     [Markup.button.webApp(
                         lang === 'ru' ? '🎓 Открыть платформу' : '🎓 Platformani ochish',
-                        process.env.STUDENT_MINI_APP_URL || ''
+                        finalUrl
                     )]
                 ])
              });

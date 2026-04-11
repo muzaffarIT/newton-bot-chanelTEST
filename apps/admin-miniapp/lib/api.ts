@@ -96,6 +96,11 @@ export async function fetchTest(id: string) {
     return data
 }
 
+export async function updateQuestion(testId: string, questionId: string, payload: any) {
+    const { data } = await api.put(`/api/admin/tests/questions/${questionId}`, payload)
+    return data
+}
+
 // ─── Scheduler ────────────────────────────────────────────────────────────────
 export async function fetchScheduledPosts(page = 1) {
     const { data } = await api.get('/api/admin/scheduler', { params: { page } })

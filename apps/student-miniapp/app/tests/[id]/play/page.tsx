@@ -21,9 +21,13 @@ export default function TestPlayer() {
     const [session, setSession] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const initRef = useRef(false)
 
     // Initialize: fetch active session or start a new one
     useEffect(() => {
+        if (initRef.current) return
+        initRef.current = true
+
         const init = async () => {
             setLoading(true)
             try {

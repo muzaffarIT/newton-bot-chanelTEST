@@ -48,12 +48,13 @@ export default function Dashboard() {
     const pts = profile?.points_balance || 0
 
     const greetingHour = new Date().getHours()
-    const greeting = greetingHour < 12 ? '🌅 Доброе утро' : greetingHour < 17 ? '☀️ Добрый день' : '🌙 Добрый вечер'
+    const greetingKey = greetingHour < 12 ? 'morning' : greetingHour < 17 ? 'day' : 'evening'
+    const greeting = t('dashboard.greeting', { greeting: t(`dashboard.${greetingKey}`), name: profile?.first_name || '' })
 
     const stats = [
-        { label: 'Завершено', value: completedCount, icon: Trophy, color: { bg: 'bg-amber-500/10', text: 'text-amber-400' } },
-        { label: 'Средний балл', value: `${avgScore}%`, icon: TrendingUp, color: { bg: 'bg-blue-500/10', text: 'text-blue-400' } },
-        { label: 'Тестов', value: tests?.length ?? 0, icon: BookOpen, color: { bg: 'bg-violet-500/10', text: 'text-violet-400' } },
+        { label: t('dashboard.stats.completed'), value: completedCount, icon: Trophy, color: { bg: 'bg-amber-500/10', text: 'text-amber-400' } },
+        { label: t('dashboard.stats.avg_score'), value: `${avgScore}%`, icon: TrendingUp, color: { bg: 'bg-blue-500/10', text: 'text-blue-400' } },
+        { label: t('dashboard.stats.tests'), value: tests?.length ?? 0, icon: BookOpen, color: { bg: 'bg-violet-500/10', text: 'text-violet-400' } },
     ]
 
     const featuredTest = tests?.[0]

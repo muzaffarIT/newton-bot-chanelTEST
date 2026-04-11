@@ -28,6 +28,7 @@ export default function SchedulePage() {
     const [tests, setTests] = useState<any[]>([])
     const [isLoadingData, setIsLoadingData] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [editPostId, setEditPostId] = useState<string | null>(null)
 
     const loadData = async () => {
         try {
@@ -49,12 +50,29 @@ export default function SchedulePage() {
 
     useEffect(() => { loadData() }, [])
 
+    const handleEdit = (post: any) => {
+        setSelectedChannel(post.channel_id)
+        setSelectedTest(post.test_id || '')
+        setMessageText(post.message_tmpl || '')
+        setLanguage(post.language === 'ru' ? 'ru' : 'uz')
+        const date = new Date(post.publish_at)
+        const tzOffset = date.getTimezoneOffset() * 60000
+        const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, 16)
+        setScheduledAt(localISOTime)
+        setPublishNow(false)
+        setEditPostId(post.id)
+        setShowForm(true)
+    }
+
     const onSubmit = async () => {
         if (!selectedChannel) return alert('Выберите канал!')
         if (!messageText && !selectedTest) return alert('Добавьте текст или тест!')
         
         try {
             setIsSubmitting(true)
+            if (editPostId) {
+                await cancelScheduledPost(editPostId)
+            }
             await api.post('/api/admin/scheduler/schedule', {
                 channelId: selectedChannel,
                 testId: selectedTest || undefined,
@@ -68,6 +86,9 @@ export default function SchedulePage() {
             setPublishNow(false)
             setMessageText('')
             setSelectedTest('')
+            setSelectedChannel('')
+            setScheduledAt('')
+            setEditPostId(null)
             loadData()
         } catch (err) {
             alert('Ошибка публикации. Проверьте настройки бота и права в канале.')
@@ -161,12 +182,20 @@ export default function SchedulePage() {
                                         {post.channel?.name || 'Неизвестный канал'}
                                     </div>
                                     {post.status === 'PENDING' && (
-                                        <button 
-                                            onClick={() => handleDelete(post.id)}
-                                            className="w-8 h-8 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => handleEdit(post)}
+                                                className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(post.id)}
+                                                className="w-8 h-8 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
@@ -189,7 +218,7 @@ export default function SchedulePage() {
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                     />
                     <div 
-                        className="relative bg-[#161625] rounded-t-[32px] p-6 pb-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-full duration-300"
+                        className="relative bg-[#161625] rounded-t-[32px] p-6 pb-32 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-full duration-300"
                     >
                             <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
                             <h2 className="text-xl font-bold text-white mb-6">Создать публикацию</h2>
@@ -253,12 +282,20 @@ export default function SchedulePage() {
                                     </div>
                                     <div>
                                         <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Когда</label>
-                                        <button 
-                                            onClick={() => { setPublishNow(!publishNow); setScheduledAt(''); }}
-                                            className={cn("w-full h-[42px] rounded-2xl font-bold text-[13px] transition-colors border", publishNow ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-[#0a0a0f] text-gray-400 border-white/10")}
-                                        >
-                                            {publishNow ? '🚀 Прямо сейчас' : '📅 По расписанию'}
-                                        </button>
+                                        <div className="flex bg-[#0a0a0f] border border-white/10 rounded-2xl p-1">
+                                            <button 
+                                                onClick={() => { setPublishNow(true); setScheduledAt(''); }}
+                                                className={cn("flex-1 py-2 text-[13px] font-bold rounded-xl transition-all", publishNow ? "bg-blue-600/20 text-blue-400" : "text-gray-500")}
+                                            >
+                                                Сейчас
+                                            </button>
+                                            <button 
+                                                onClick={() => setPublishNow(false)}
+                                                className={cn("flex-1 py-2 text-[13px] font-bold rounded-xl transition-all", !publishNow ? "bg-blue-600/20 text-blue-400" : "text-gray-500")}
+                                            >
+                                                Потом
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 

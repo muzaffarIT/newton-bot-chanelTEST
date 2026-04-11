@@ -41,6 +41,10 @@ class CreateQuestionDto {
     @IsString()
     topic_id: string;
 
+    @IsString()
+    @IsOptional()
+    image_url?: string;
+
     @IsNumber()
     @IsOptional()
     @Type(() => Number)
@@ -134,6 +138,7 @@ export class AdminTestsController {
                 test_id: testId,
                 topic_id: dto.topic_id,
                 content: dto.content,
+                image_url: dto.image_url,
                 order_num: dto.order_num ?? 0,
                 options: {
                     createMany: {

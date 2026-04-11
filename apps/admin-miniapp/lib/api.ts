@@ -102,6 +102,11 @@ export async function fetchScheduledPosts(page = 1) {
     return data
 }
 
+export async function cancelScheduledPost(id: string) {
+    const { data } = await api.delete(`/api/admin/scheduler/${id}`)
+    return data
+}
+
 export async function schedulePost(channelId: string, testId: string, publishAt?: string, publishNow = false) {
     const { data } = await api.post('/api/admin/scheduler/schedule', {
         channelId,

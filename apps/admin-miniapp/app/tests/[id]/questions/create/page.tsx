@@ -101,7 +101,26 @@ export default function CreateQuestionPage() {
                 {/* 1. Theme Selection */}
                 <div className="space-y-4">
                     <div className="flex flex-col gap-2">
-                        <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">1. Тема вопроса</label>
+                        <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider flex justify-between">
+                            1. Тема вопроса
+                            <button 
+                                onClick={async () => {
+                                    const name = prompt('Введите название новой темы:')
+                                    if(name) {
+                                        try {
+                                            const { data } = await api.post('/api/admin/topics', { name })
+                                            await queryClient.invalidateQueries({ queryKey: ['topics'] })
+                                            setTopicId(data.id)
+                                        } catch(e) {
+                                            alert('Ошибка создания темы')
+                                        }
+                                    }
+                                }}
+                                className="text-blue-400 normal-case hover:underline"
+                            >
+                                + Создать новую
+                            </button>
+                        </label>
                         <select 
                             value={topicId}
                             onChange={(e) => setTopicId(e.target.value)}

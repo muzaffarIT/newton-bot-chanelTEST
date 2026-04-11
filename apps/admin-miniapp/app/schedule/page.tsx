@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { api, fetchScheduledPosts, fetchChannels, fetchTests } from '@/lib/api'
+import { api, fetchScheduledPosts, fetchChannels, fetchTests, cancelScheduledPost } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Clock, Send, Plus, X, Globe, MessageSquare, AlertCircle, CheckCircle, Clock3 } from 'lucide-react'
+import { Calendar, Clock, Send, Plus, X, Globe, MessageSquare, AlertCircle, CheckCircle, Clock3, Trash2 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { color: string, bg: string, icon: any, label: string }> = {
     PENDING: { color: 'text-amber-400', bg: 'bg-amber-500/10', icon: Clock3, label: 'В ожидании' },
@@ -77,6 +77,16 @@ export default function SchedulePage() {
         }
     }
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Вы уверены, что хотите отменить этот пост?')) return
+        try {
+            await cancelScheduledPost(id)
+            loadData()
+        } catch (e) {
+            alert('Ошибка при удалении поста')
+        }
+    }
+
     const filteredPosts = posts.filter(p => filter === 'ALL' || p.status === filter)
 
     return (
@@ -139,16 +149,26 @@ export default function SchedulePage() {
                                     </div>
                                 </div>
                                 
-                                <h3 className="font-bold text-[15px] text-white leading-snug mb-1 relative z-10">
+                                <h3 className="font-bold text-[15px] text-white leading-snug mb-1 relative z-10 pr-8">
                                     {post.test?.title || 'Обычный пост'}
                                 </h3>
                                 {post.message_tmpl && <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-3">{post.message_tmpl}</p>}
                                 
-                                <div className="flex items-center gap-2 text-[12px] font-medium text-gray-500 relative z-10">
-                                    <Clock size={14} className="text-gray-600" />
-                                    {new Date(post.publish_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                    <span className="mx-1">•</span>
-                                    {post.channel?.name || 'Неизвестный канал'}
+                                <div className="flex items-center justify-between mt-2 relative z-10">
+                                    <div className="flex items-center gap-2 text-[12px] font-medium text-gray-500">
+                                        <Clock size={14} className="text-gray-600" />
+                                        {new Date(post.publish_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        <span className="mx-1">•</span>
+                                        {post.channel?.name || 'Неизвестный канал'}
+                                    </div>
+                                    {post.status === 'PENDING' && (
+                                        <button 
+                                            onClick={() => handleDelete(post.id)}
+                                            className="w-8 h-8 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {post.error_log && (

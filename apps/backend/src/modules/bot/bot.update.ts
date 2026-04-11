@@ -132,10 +132,11 @@ export class BotUpdate implements OnModuleInit {
             keyboardOptions = [
                 ['📢 Опубликовать пост', '➕ Добавить канал'],
                 ['⚙️ Настройки администратора', '🎓 Кабинет'],
+                ['🌐 Сменить язык']
             ];
         } else {
             keyboardOptions = isRu
-                ? [['🎓 Кабинет', '📝 Тесты'], ['📞 Консультация', '🌐 Язык']]
+                ? [['🎓 Кабинет', '📝 Тесты'], ['📞 Консультация', '🌐 Сменить язык']]
                 : [['🎓 Kabinet', '📝 Testlar'], ['📞 Konsultatsiya', '🌐 Tilni o\'zgartirish']];
         }
 

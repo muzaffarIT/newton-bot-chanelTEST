@@ -20,13 +20,15 @@ export function BottomNav() {
 
     return (
         <nav
-            className="fixed bottom-0 left-0 right-0 z-50"
+            className="fixed bottom-0 left-0 right-0 z-[9999]"
             style={{
                 background: 'rgba(10, 10, 26, 0.97)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 borderTop: '1px solid rgba(255,255,255,0.07)',
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)',
+                transform: 'translateZ(0)',
+                WebkitTransform: 'translateZ(0)',
             }}
         >
             <div className="flex items-center justify-around px-2 py-2">

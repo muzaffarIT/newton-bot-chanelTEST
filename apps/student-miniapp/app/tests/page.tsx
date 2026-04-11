@@ -20,13 +20,6 @@ export default function TestsPage() {
 
     const { data: tests, isLoading } = useQuery({ queryKey: ['available-tests'], queryFn: fetchAvailableTests })
 
-    const startMutation = useMutation({
-        mutationFn: startSession,
-        onSuccess: (data, testId) => {
-            queryClient.invalidateQueries({ queryKey: ['active-session'] })
-            router.push(`/tests/${testId}/play`)
-        },
-        onError: (err: any) => {
     const filteredTests = tests?.filter((test: any) =>
         test.title.toLowerCase().includes(search.toLowerCase()) ||
         test.description?.toLowerCase().includes(search.toLowerCase())

@@ -68,22 +68,32 @@ export default function TestPlayer() {
             saveAnswer(session.id, questionId, optionId),
     })
 
+    const isSubmittingRef = useRef(false)
+
     const submitMutation = useMutation({
         mutationFn: () => submitSession(session.id),
-        onSuccess: () => router.push(`/results/${session.id}`),
+        onSuccess: (data: any) => {
+            // Backend returns { session, result } — navigate to result.id
+            const resultId = data?.result?.id || data?.id || session.id
+            router.push(`/results/${resultId}`)
+        },
         onError: (e: any) => alert(e.response?.data?.message || t('common.error')),
     })
 
-    // Timer
+    // Timer — counts down to expires_at, auto-submits when done
     useEffect(() => {
         if (!session?.expires_at) return
         const expireTime = new Date(session.expires_at).getTime()
-        
+
         const updateTimer = () => {
             const diff = Math.floor((expireTime - Date.now()) / 1000)
             if (diff <= 0) {
                 setTimeLeft(0)
-                submitMutation.mutate()
+                // Auto-submit only once
+                if (!isSubmittingRef.current && !submitMutation.isPending) {
+                    isSubmittingRef.current = true
+                    submitMutation.mutate()
+                }
                 return false
             }
             setTimeLeft(diff)
@@ -96,6 +106,7 @@ export default function TestPlayer() {
             }, 1000)
             return () => clearInterval(interval)
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [session])
 
     const handleAnswerSelect = (optionId: string) => {
@@ -171,15 +182,25 @@ export default function TestPlayer() {
                 </button>
 
                 {/* Timer */}
-                <div className={cn(
-                    "flex items-center gap-2.5 font-mono font-bold text-sm px-4 py-2 rounded-2xl shadow-inner",
-                    timeLeft !== null && timeLeft < 300
-                        ? "bg-red-500/10 text-red-400 shadow-red-500/10 animate-pulse border border-red-500/20"
-                        : "bg-[#1c1c28] text-gray-300 border border-white/5"
-                )}>
-                    <Clock size={16} className={timeLeft !== null && timeLeft < 300 ? "text-red-400" : "text-blue-400"} />
-                    <span className="tracking-widest">{timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}</span>
-                </div>
+                {timeLeft !== null && (
+                    <div className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-2xl border font-mono font-black text-base tracking-wider transition-all",
+                        timeLeft < 60
+                            ? "bg-red-500/15 border-red-500/40 text-red-400 animate-pulse shadow-[0_0_16px_rgba(239,68,68,0.2)]"
+                            : timeLeft < 300
+                                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                                : "bg-[#1c1c28] border-white/8 text-white"
+                    )}>
+                        <Clock
+                            size={15}
+                            className={cn(
+                                timeLeft < 60 ? "text-red-400" :
+                                timeLeft < 300 ? "text-amber-400" : "text-blue-400"
+                            )}
+                        />
+                        <span>{formatTime(timeLeft)}</span>
+                    </div>
+                )}
 
                 <button
                     onClick={() => { if (confirm('Уверены, что хотите завершить тест?')) submitMutation.mutate() }}

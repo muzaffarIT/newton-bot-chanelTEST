@@ -82,10 +82,20 @@ export class StudentService {
     }
 
     async getResult(userId: string, resultId: string) {
-        const result = await this.prisma.testResult.findUnique({
+        // First try to find by result.id
+        let result = await this.prisma.testResult.findUnique({
             where: { id: resultId },
             include: { session: { include: { test: { include: { questions: true } } } } }
         });
+
+        // Fallback: if not found by result.id, try finding by session_id
+        if (!result) {
+            result = await this.prisma.testResult.findFirst({
+                where: { session_id: resultId },
+                include: { session: { include: { test: { include: { questions: true } } } } }
+            });
+        }
+
         if (!result || result.session.user_id !== userId) throw new HttpException('Result not found', HttpStatus.NOT_FOUND);
         return result;
     }

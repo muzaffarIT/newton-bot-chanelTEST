@@ -30,20 +30,36 @@ export class SchedulerController {
                 throw new HttpException('Either publishAt or publishNow must be provided.', HttpStatus.BAD_REQUEST);
             }
 
+            // Resolve which channels to post to (support both single and multi-channel)
+            const channelIds: string[] = dto.channelIds?.length
+                ? dto.channelIds
+                : dto.channelId
+                    ? [dto.channelId]
+                    : [];
+
+            if (channelIds.length === 0) {
+                throw new HttpException('At least one channelId or channelIds must be provided.', HttpStatus.BAD_REQUEST);
+            }
+
             const publishAt = dto.publishAt ? new Date(dto.publishAt) : undefined;
             if (publishAt && isNaN(publishAt.getTime())) {
                 throw new HttpException('Invalid publishAt date format.', HttpStatus.BAD_REQUEST);
             }
 
-            const result = await this.schedulerService.scheduleTestPost({
-                channelId: dto.channelId,
-                testId: dto.testId,
-                messageText: dto.messageText,
-                publishAt,
-                publishNow: dto.publishNow,
-            });
+            // Fan-out: schedule/publish to each channel in parallel
+            const results = await Promise.all(
+                channelIds.map(channelId =>
+                    this.schedulerService.scheduleTestPost({
+                        channelId,
+                        testId: dto.testId,
+                        messageText: dto.messageText,
+                        publishAt,
+                        publishNow: dto.publishNow,
+                    })
+                )
+            );
 
-            return result;
+            return { success: true, results, channelCount: channelIds.length };
         } catch (e) {
             if (e instanceof HttpException) throw e;
             throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);

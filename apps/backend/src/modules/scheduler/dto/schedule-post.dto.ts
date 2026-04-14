@@ -1,9 +1,16 @@
-import { IsString, IsDateString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsDateString, IsNotEmpty, IsOptional, IsBoolean, IsArray } from 'class-validator';
 
 export class SchedulePostDto {
-    @IsNotEmpty()
+    /** Single channel (legacy) — used when posting to exactly one channel */
+    @IsOptional()
     @IsString()
-    channelId: string;
+    channelId?: string;
+
+    /** Multiple channels — the post is sent to all of them simultaneously */
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    channelIds?: string[];
 
     /** Optional: The test ID to attach to the message. If omitted, sends a regular text post */
     @IsOptional()

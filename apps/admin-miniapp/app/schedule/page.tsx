@@ -15,7 +15,7 @@ const STATUS_CONFIG: Record<string, { color: string, bg: string, icon: any, labe
 
 export default function SchedulePage() {
     const [showForm, setShowForm] = useState(false)
-    const [selectedChannel, setSelectedChannel] = useState('')
+    const [selectedChannels, setSelectedChannels] = useState<string[]>([])
     const [selectedTest, setSelectedTest] = useState('')
     const [publishNow, setPublishNow] = useState(false)
     const [scheduledAt, setScheduledAt] = useState('')
@@ -29,6 +29,12 @@ export default function SchedulePage() {
     const [isLoadingData, setIsLoadingData] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [editPostId, setEditPostId] = useState<string | null>(null)
+
+    const toggleChannel = (id: string) => {
+        setSelectedChannels(prev =>
+            prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+        )
+    }
 
     const loadData = async () => {
         try {
@@ -51,7 +57,7 @@ export default function SchedulePage() {
     useEffect(() => { loadData() }, [])
 
     const handleEdit = (post: any) => {
-        setSelectedChannel(post.channel_id)
+        setSelectedChannels([post.channel_id])
         setSelectedTest(post.test_id || '')
         setMessageText(post.message_tmpl || '')
         setLanguage(post.language === 'ru' ? 'ru' : 'uz')
@@ -65,7 +71,7 @@ export default function SchedulePage() {
     }
 
     const onSubmit = async () => {
-        if (!selectedChannel) return alert('Выберите канал!')
+        if (selectedChannels.length === 0) return alert('Выберите хотя бы один канал!')
         if (!messageText && !selectedTest) return alert('Добавьте текст или тест!')
         
         try {
@@ -74,7 +80,7 @@ export default function SchedulePage() {
                 await cancelScheduledPost(editPostId)
             }
             await api.post('/api/admin/scheduler/schedule', {
-                channelId: selectedChannel,
+                channelIds: selectedChannels,
                 testId: selectedTest || undefined,
                 publishNow,
                 language,
@@ -86,7 +92,7 @@ export default function SchedulePage() {
             setPublishNow(false)
             setMessageText('')
             setSelectedTest('')
-            setSelectedChannel('')
+            setSelectedChannels([])
             setScheduledAt('')
             setEditPostId(null)
             loadData()
@@ -224,20 +230,39 @@ export default function SchedulePage() {
                             <h2 className="text-xl font-bold text-white mb-6">Создать публикацию</h2>
 
                             <div className="space-y-5">
-                                {/* Channel */}
+                                {/* Channels multi-select */}
                                 <div>
-                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Канал для публикации</label>
-                                    <div className="relative">
-                                        <Globe size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <select
-                                            className="w-full bg-[#0a0a0f] border border-white/10 rounded-2xl pl-12 pr-4 py-3.5 text-[15px] font-medium text-white outline-none focus:border-blue-500 transition-colors appearance-none"
-                                            value={selectedChannel}
-                                            onChange={e => setSelectedChannel(e.target.value)}
-                                        >
-                                            <option value="" disabled>Выберите канал...</option>
-                                            {channels.map((ch: any) => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
-                                        </select>
-                                    </div>
+                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center justify-between">
+                                        <span className="flex items-center gap-2"><Globe size={14} /> Каналы для публикации</span>
+                                        {selectedChannels.length > 0 && (
+                                            <span className="text-blue-400 text-[11px] normal-case font-semibold">{selectedChannels.length} выбрано</span>
+                                        )}
+                                    </label>
+                                    {channels.length === 0 ? (
+                                        <p className="text-gray-500 text-sm py-2">Нет доступных каналов. Добавьте их в настройках.</p>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            {channels.map((ch: any) => {
+                                                const isSelected = selectedChannels.includes(ch.id)
+                                                return (
+                                                    <button
+                                                        key={ch.id}
+                                                        type="button"
+                                                        onClick={() => toggleChannel(ch.id)}
+                                                        className={cn(
+                                                            "px-4 py-2.5 rounded-2xl text-sm font-bold border-2 transition-all active:scale-95",
+                                                            isSelected
+                                                                ? "bg-blue-500/20 border-blue-500 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)]"
+                                                                : "bg-[#0a0a0f] border-white/10 text-gray-400 hover:border-white/25"
+                                                        )}
+                                                    >
+                                                        {isSelected && <span className="mr-1.5">✓</span>}
+                                                        {ch.name}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Test */}

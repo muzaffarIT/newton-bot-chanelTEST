@@ -146,11 +146,15 @@ export default function ProfilePage() {
 
     const handleLanguageSwitch = async () => {
         const newLang = lang === 'ru' ? 'uz' : 'ru'
+        // Switch UI immediately for instant feedback
+        setLang(newLang)
         setLangSaving(true)
         try {
             await updateLanguage(newLang)
-            setLang(newLang)
             queryClient.invalidateQueries({ queryKey: ['profile'] })
+        } catch (e) {
+            // Language already switched in UI, just log the error silently
+            console.warn('Language sync to backend failed, but local preference is saved', e)
         } finally {
             setLangSaving(false)
         }

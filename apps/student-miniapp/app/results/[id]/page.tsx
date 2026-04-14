@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { fetchResultDetail, requestConsultation, fetchProfile, updateProfile } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
-import { CheckCircle2, ChevronRight, Share2, Award, Zap, AlertTriangle, MessageSquare } from 'lucide-react'
+import { CheckCircle2, ChevronRight, Share2, Award, Zap, AlertTriangle, MessageSquare, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/context/I18nContext'
 
@@ -14,6 +14,22 @@ export default function ResultPage() {
     const { t, lang: currentLang } = useI18n()
     const { id: resultId } = useParams()
     const router = useRouter()
+
+    const [consultRequested, setConsultRequested] = useState(false)
+    const [consultLoading, setConsultLoading] = useState(false)
+
+    const handleRequestConsultation = async () => {
+        setConsultLoading(true)
+        try {
+            await requestConsultation('OFFLINE')
+            setConsultRequested(true)
+        } catch (e: any) {
+            const msg = e?.response?.data?.message || e?.message || 'Ошибка. Попробуйте снова.'
+            alert('Ошибка: ' + msg)
+        } finally {
+            setConsultLoading(false)
+        }
+    }
 
     const { data: profile, refetch: refetchProfile } = useQuery({
         queryKey: ['profile'],
@@ -209,15 +225,21 @@ export default function ResultPage() {
                             {t('results.cta_desc') || 'Запишитесь на профессиональную консультацию, чтобы разобрать ошибки с экспертом академии.'}
                         </p>
                         <button
-                            onClick={() => {
-                                if(confirm('Запросить консультацию с экспертом Newton Academy?')) {
-                                    requestConsultation('OFFLINE').then(() => alert('Заявка успешно отправлена! Ожидайте звонка менеджера.'))
-                                }
-                            }}
-                            className="w-full py-4 bg-white text-indigo-600 font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_10px_35px_rgba(0,0,0,0.2)]"
+                            onClick={handleRequestConsultation}
+                            disabled={consultLoading || consultRequested}
+                            className={cn(
+                                "w-full py-4 font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_10px_25px_rgba(0,0,0,0.15)]",
+                                consultRequested 
+                                    ? "bg-emerald-500 text-white" 
+                                    : "bg-white text-indigo-600 hover:shadow-[0_10px_35px_rgba(0,0,0,0.2)] disabled:opacity-60"
+                            )}
                         >
-                            {t('results.cta_btn') || 'Оставить заявку'}
-                            <ChevronRight size={18} />
+                            {consultLoading && <Loader2 size={18} className="animate-spin" />}
+                            {consultRequested ? (
+                                <><CheckCircle2 size={18} /> Заявка отправлена! Ждите звонка</>
+                            ) : (
+                                <>{t('results.cta_btn') || 'Оставить заявку'} {!consultLoading && <ChevronRight size={18} />}</>
+                            )}
                         </button>
                     </div>
                 </div>

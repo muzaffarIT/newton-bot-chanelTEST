@@ -430,7 +430,17 @@ export class BotUpdate implements OnModuleInit {
 
                 await ctx.reply(
                     `✅ Канал успешно добавлен!\n\n📢 *${channelTitle}*\nID: \`${chatId}\`\n\n_Обновите страницу Настроек в Админ Панели._`,
-                    { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } },
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            keyboard: [
+                                ['📢 Опубликовать пост', '➕ Добавить канал'],
+                                ['⚙️ Настройки администратора', '🎓 Кабинет'],
+                                ['🌐 Сменить язык'],
+                            ],
+                            resize_keyboard: true,
+                        },
+                    },
                 );
             } catch (e) {
                 await ctx.reply('❌ Произошла ошибка при сохранении канала: ' + e.message);

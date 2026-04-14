@@ -339,7 +339,7 @@ export default function SchedulePage() {
                                 {/* Submit */}
                                 <button
                                     onClick={onSubmit}
-                                    disabled={!selectedChannel || (!selectedTest && !messageText) || isSubmitting}
+                                    disabled={selectedChannels.length === 0 || (!selectedTest && !messageText) || isSubmitting}
                                     className="w-full py-4 mt-6 bg-white text-black text-[15px] font-bold rounded-2xl disabled:opacity-30 disabled:border-white/10 disabled:bg-[#0a0a0f] disabled:text-gray-500 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                                 >
                                     {isSubmitting ? <span className="animate-pulse">Подготовка...</span> : publishNow ? <><Send size={18}/> Опубликовать</> : <><Calendar size={18}/> Запланировать</>}

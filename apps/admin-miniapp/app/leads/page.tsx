@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
     fetchLeads, fetchLead, updateLeadStatus, updateLeadTags,
@@ -136,8 +136,14 @@ function LeadDrawer({ leadId, onClose }: { leadId: string; onClose: () => void }
     const { data: lead, isLoading } = useQuery({
         queryKey: ['lead-detail', leadId],
         queryFn: () => fetchLead(leadId),
-        onSuccess: (d: any) => setComment(d.manager_comment || ''),
     })
+
+    // React Query v5 doesn't have onSuccess on useQuery, so use useEffect instead
+    useEffect(() => {
+        if (lead) {
+            setComment(lead.manager_comment || '')
+        }
+    }, [lead])
 
     const statusMut = useMutation({
         mutationFn: ({ status }: { status: string }) => updateLeadStatus(leadId, status),

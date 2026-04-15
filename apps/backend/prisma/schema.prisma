@@ -232,6 +232,7 @@ model Lead {
   city             String?
   branch           String?
   manager_comment  String?
+  tags             String[]   @default([])
   created_at       DateTime   @default(now())
   updated_at       DateTime   @updatedAt
 

@@ -8,9 +8,11 @@ import { AdminUsersController } from './admin-users.controller';
 import { AdminStoreController } from './admin-store.controller';
 import { AdminSettingsController, StudentSettingsController } from './admin-settings.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { TelegrafModule } from 'nestjs-telegraf';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-    imports: [PrismaModule],
+    imports: [PrismaModule, ConfigModule],
     controllers: [
         AdminLeadsController,
         AdminTestsController,

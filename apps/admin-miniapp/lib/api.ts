@@ -70,8 +70,8 @@ export async function fetchResults(page = 1) {
 }
 
 // ─── Leads ────────────────────────────────────────────────────────────────────
-export async function fetchLeads(page = 1, status?: string) {
-    const { data } = await api.get('/api/admin/leads', { params: { page, limit: 25, status } })
+export async function fetchLeads(page = 1, status?: string, search?: string) {
+    const { data } = await api.get('/api/admin/leads', { params: { page, limit: 25, status, search } })
     return data
 }
 
@@ -84,6 +84,27 @@ export async function updateLeadStatus(id: string, status: string, comment?: str
     const { data } = await api.patch(`/api/admin/leads/${id}/status`, { status, comment })
     return data
 }
+
+export async function updateLeadTags(id: string, tags: string[]) {
+    const { data } = await api.patch(`/api/admin/leads/${id}/tags`, { tags })
+    return data
+}
+
+export async function updateLeadComment(id: string, comment: string) {
+    const { data } = await api.patch(`/api/admin/leads/${id}/comment`, { comment })
+    return data
+}
+
+export async function notifyLeadTelegram(id: string) {
+    const { data } = await api.post(`/api/admin/leads/${id}/notify`)
+    return data
+}
+
+export async function syncLeadToSheets(id: string) {
+    const { data } = await api.post(`/api/admin/leads/${id}/sync-sheets`)
+    return data
+}
+
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 export async function fetchTests(page = 1) {

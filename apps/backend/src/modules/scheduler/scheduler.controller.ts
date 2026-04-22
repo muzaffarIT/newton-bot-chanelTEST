@@ -76,7 +76,7 @@ export class SchedulerController {
      * Upload media files for posts.
      */
     @Post('upload')
-    @UseInterceptors(FilesInterceptor('files', 10, {
+    @UseInterceptors(FilesInterceptor('files', 50, {
         storage: diskStorage({
             destination: (req, file, cb) => {
                 const dir = './public/uploads';

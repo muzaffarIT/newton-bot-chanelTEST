@@ -75,8 +75,8 @@ export default function SchedulePage() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files)
-            if (mediaFiles.length + newFiles.length > 10) {
-                alert('Максимум 10 файлов (медиагруппа)')
+            if (mediaFiles.length + newFiles.length > 50) {
+                alert('Максимум 50 файлов')
                 return
             }
             setMediaFiles(prev => [...prev, ...newFiles])
@@ -313,7 +313,7 @@ export default function SchedulePage() {
                                 <div>
                                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center justify-between">
                                         <span>Фото / Видео</span>
-                                        {mediaFiles.length > 0 && <span className="text-blue-400 normal-case">{mediaFiles.length}/10</span>}
+                                        {mediaFiles.length > 0 && <span className="text-blue-400 normal-case">{mediaFiles.length} выбрано</span>}
                                     </label>
                                     
                                     {mediaFiles.length > 0 && (
@@ -336,7 +336,7 @@ export default function SchedulePage() {
                                         </div>
                                     )}
 
-                                    {mediaFiles.length < 10 && (
+                                    {mediaFiles.length < 50 && (
                                         <label className="flex items-center justify-center w-full bg-[#0a0a0f] border border-white/10 border-dashed rounded-2xl py-3 cursor-pointer hover:bg-white/5 transition-colors">
                                             <span className="text-sm font-bold text-blue-400 flex items-center gap-2"><Plus size={16}/> Добавить файлы</span>
                                             <input type="file" multiple accept="image/*,video/mp4,video/quicktime" className="hidden" onChange={handleFileChange} />

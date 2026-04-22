@@ -118,17 +118,23 @@ export class SchedulerService {
                         if (testId && deepLink) {
                             finalCaption += `\n\n[📝 Начать тест](${deepLink})`;
                         }
-                        const mediaGroup = mediaUrls.map((url, i) => {
-                            const filePath = path.join(process.cwd(), 'public', url);
-                            const ext = path.extname(url).toLowerCase();
-                            const type = (ext === '.mp4' || ext === '.mov') ? 'video' : 'photo';
-                            return {
-                                type,
-                                media: { source: fs.createReadStream(filePath) },
-                                ...(i === 0 ? { caption: finalCaption, parse_mode: 'Markdown' } : {})
-                            };
-                        });
-                        await this.bot.telegram.sendMediaGroup(channel.telegram_id, mediaGroup as any);
+                        
+                        // Chunk mediaUrls into arrays of max 10 (Telegram limit)
+                        const chunkSize = 10;
+                        for (let c = 0; c < mediaUrls.length; c += chunkSize) {
+                            const chunk = mediaUrls.slice(c, c + chunkSize);
+                            const mediaGroup = chunk.map((url, i) => {
+                                const filePath = path.join(process.cwd(), 'public', url);
+                                const ext = path.extname(url).toLowerCase();
+                                const type = (ext === '.mp4' || ext === '.mov') ? 'video' : 'photo';
+                                return {
+                                    type,
+                                    media: { source: fs.createReadStream(filePath) },
+                                    ...((c === 0 && i === 0) ? { caption: finalCaption, parse_mode: 'Markdown' } : {})
+                                };
+                            });
+                            await this.bot.telegram.sendMediaGroup(channel.telegram_id, mediaGroup as any);
+                        }
                     }
                 } else {
                     await this.bot.telegram.sendMessage(channel.telegram_id, messageText, extra);

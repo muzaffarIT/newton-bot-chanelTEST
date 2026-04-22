@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { api, fetchScheduledPosts, fetchChannels, fetchTests, cancelScheduledPost } from '@/lib/api'
 import { BottomNav } from '@/components/BottomNav'
 import { cn } from '@/lib/utils'
-import { Calendar, Clock, Send, Plus, X, Globe, MessageSquare, AlertCircle, CheckCircle, Clock3, Trash2 } from 'lucide-react'
+import { Calendar, Clock, Send, Plus, X, Globe, MessageSquare, AlertCircle, CheckCircle, Clock3, Trash2, Image as ImageIcon } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { color: string, bg: string, icon: any, label: string }> = {
     PENDING: { color: 'text-amber-400', bg: 'bg-amber-500/10', icon: Clock3, label: 'В ожидании' },
@@ -21,6 +21,7 @@ export default function SchedulePage() {
     const [scheduledAt, setScheduledAt] = useState('')
     const [language, setLanguage] = useState<'ru' | 'uz'>('ru')
     const [messageText, setMessageText] = useState('')
+    const [mediaFiles, setMediaFiles] = useState<File[]>([])
     const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'PUBLISHED'>('ALL')
 
     const [posts, setPosts] = useState<any[]>([])
@@ -66,16 +67,43 @@ export default function SchedulePage() {
         const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, 16)
         setScheduledAt(localISOTime)
         setPublishNow(false)
+        setMediaFiles([])
         setEditPostId(post.id)
         setShowForm(true)
     }
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files)
+            if (mediaFiles.length + newFiles.length > 10) {
+                alert('Максимум 10 файлов (медиагруппа)')
+                return
+            }
+            setMediaFiles(prev => [...prev, ...newFiles])
+        }
+    }
+
+    const removeFile = (index: number) => {
+        setMediaFiles(prev => prev.filter((_, i) => i !== index))
+    }
+
     const onSubmit = async () => {
         if (selectedChannels.length === 0) return alert('Выберите хотя бы один канал!')
-        if (!messageText && !selectedTest) return alert('Добавьте текст или тест!')
+        if (!messageText && !selectedTest && mediaFiles.length === 0) return alert('Добавьте текст, тест или медиафайлы!')
         
         try {
             setIsSubmitting(true)
+            
+            let uploadedUrls: string[] = [];
+            if (mediaFiles.length > 0) {
+                const formData = new FormData();
+                mediaFiles.forEach(f => formData.append('files', f));
+                const res = await api.post('/api/admin/scheduler/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                uploadedUrls = res.data.urls;
+            }
+
             if (editPostId) {
                 await cancelScheduledPost(editPostId)
             }
@@ -85,6 +113,7 @@ export default function SchedulePage() {
                 publishNow,
                 language,
                 messageText: messageText || undefined,
+                mediaUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
                 publishAt: publishNow || !scheduledAt ? undefined : new Date(scheduledAt).toISOString()
             })
             
@@ -93,6 +122,7 @@ export default function SchedulePage() {
             setMessageText('')
             setSelectedTest('')
             setSelectedChannels([])
+            setMediaFiles([])
             setScheduledAt('')
             setEditPostId(null)
             loadData()
@@ -177,6 +207,7 @@ export default function SchedulePage() {
                                 
                                 <h3 className="font-bold text-[15px] text-white leading-snug mb-1 relative z-10 pr-8">
                                     {post.test?.title || 'Обычный пост'}
+                                    {post.media_urls?.length > 0 && <span className="ml-2 inline-flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded"><ImageIcon size={10}/> {post.media_urls.length}</span>}
                                 </h3>
                                 {post.message_tmpl && <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-3">{post.message_tmpl}</p>}
                                 
@@ -273,9 +304,44 @@ export default function SchedulePage() {
                                         value={selectedTest}
                                         onChange={e => setSelectedTest(e.target.value)}
                                     >
-                                        <option value="">Без теста (только текст)</option>
+                                        <option value="">Без теста (только текст / медиа)</option>
                                         {tests.map((t: any) => <option key={t.id} value={t.id}>{t.title}</option>)}
                                     </select>
+                                </div>
+
+                                {/* Media Files */}
+                                <div>
+                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center justify-between">
+                                        <span>Фото / Видео</span>
+                                        {mediaFiles.length > 0 && <span className="text-blue-400 normal-case">{mediaFiles.length}/10</span>}
+                                    </label>
+                                    
+                                    {mediaFiles.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {mediaFiles.map((file, i) => (
+                                                <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden bg-[#0a0a0f] border border-white/10 group">
+                                                    {file.type.startsWith('image/') ? (
+                                                        <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400">ВИДЕО</div>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => removeFile(i)}
+                                                        className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X size={10} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {mediaFiles.length < 10 && (
+                                        <label className="flex items-center justify-center w-full bg-[#0a0a0f] border border-white/10 border-dashed rounded-2xl py-3 cursor-pointer hover:bg-white/5 transition-colors">
+                                            <span className="text-sm font-bold text-blue-400 flex items-center gap-2"><Plus size={16}/> Добавить файлы</span>
+                                            <input type="file" multiple accept="image/*,video/mp4,video/quicktime" className="hidden" onChange={handleFileChange} />
+                                        </label>
+                                    )}
                                 </div>
 
                                 {/* Text */}
@@ -339,7 +405,7 @@ export default function SchedulePage() {
                                 {/* Submit */}
                                 <button
                                     onClick={onSubmit}
-                                    disabled={selectedChannels.length === 0 || (!selectedTest && !messageText) || isSubmitting}
+                                    disabled={selectedChannels.length === 0 || (!selectedTest && !messageText && mediaFiles.length === 0) || isSubmitting}
                                     className="w-full py-4 mt-6 bg-white text-black text-[15px] font-bold rounded-2xl disabled:opacity-30 disabled:border-white/10 disabled:bg-[#0a0a0f] disabled:text-gray-500 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                                 >
                                     {isSubmitting ? <span className="animate-pulse">Подготовка...</span> : publishNow ? <><Send size={18}/> Опубликовать</> : <><Calendar size={18}/> Запланировать</>}

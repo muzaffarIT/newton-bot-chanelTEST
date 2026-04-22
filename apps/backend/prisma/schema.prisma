@@ -277,6 +277,7 @@ model ScheduledPost {
   language     String   @default("ru")
   status       String   @default("PENDING") // PENDING, PUBLISHED, FAILED, CANCELLED
   error_log    String?
+  media_urls   String[] @default([])
   created_at   DateTime @default(now())
 
   test    Test?   @relation(fields: [test_id], references: [id], onDelete: Cascade)

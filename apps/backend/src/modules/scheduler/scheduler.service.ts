@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface PostJobPayload {
     channelId: string;
@@ -12,6 +14,7 @@ export interface PostJobPayload {
     messageText: string;
     scheduledPostId: string;
     language: string;
+    mediaUrls?: string[];
 }
 
 @Injectable()
@@ -68,8 +71,9 @@ export class SchedulerService {
         publishAt?: Date;
         publishNow?: boolean;
         lang?: string;
+        mediaUrls?: string[];
     }) {
-        const { channelId, testId, publishNow } = options;
+        const { channelId, testId, publishNow, mediaUrls } = options;
 
         if (!options.messageText && !testId) {
             throw new Error('Message text is required when no test is specified');
@@ -92,7 +96,7 @@ export class SchedulerService {
                 const deepLink = await this.generateDeepLink(testId);
                 const extra: any = { parse_mode: 'Markdown' };
 
-                if (testId && deepLink) {
+                if (testId && deepLink && (!mediaUrls || mediaUrls.length <= 1)) {
                     extra.reply_markup = {
                         inline_keyboard: [[
                             { text: lang === 'ru' ? '📝 Начать тест' : '📝 Testni boshlash', url: deepLink }
@@ -100,7 +104,36 @@ export class SchedulerService {
                     };
                 }
 
-                await this.bot.telegram.sendMessage(channel.telegram_id, messageText, extra);
+                if (mediaUrls && mediaUrls.length > 0) {
+                    if (mediaUrls.length === 1) {
+                        const filePath = path.join(process.cwd(), 'public', mediaUrls[0]);
+                        const ext = path.extname(mediaUrls[0]).toLowerCase();
+                        if (ext === '.mp4' || ext === '.mov') {
+                            await this.bot.telegram.sendVideo(channel.telegram_id, { source: fs.createReadStream(filePath) }, { ...extra, caption: messageText });
+                        } else {
+                            await this.bot.telegram.sendPhoto(channel.telegram_id, { source: fs.createReadStream(filePath) }, { ...extra, caption: messageText });
+                        }
+                    } else {
+                        let finalCaption = messageText;
+                        if (testId && deepLink) {
+                            finalCaption += `\n\n[📝 Начать тест](${deepLink})`;
+                        }
+                        const mediaGroup = mediaUrls.map((url, i) => {
+                            const filePath = path.join(process.cwd(), 'public', url);
+                            const ext = path.extname(url).toLowerCase();
+                            const type = (ext === '.mp4' || ext === '.mov') ? 'video' : 'photo';
+                            return {
+                                type,
+                                media: { source: fs.createReadStream(filePath) },
+                                ...(i === 0 ? { caption: finalCaption, parse_mode: 'Markdown' } : {})
+                            };
+                        });
+                        await this.bot.telegram.sendMediaGroup(channel.telegram_id, mediaGroup as any);
+                    }
+                } else {
+                    await this.bot.telegram.sendMessage(channel.telegram_id, messageText, extra);
+                }
+                
                 this.logger.log(`✅ Post published directly to channel ${channel.name}`);
 
                 const scheduledPost = await this.prisma.scheduledPost.create({
@@ -109,6 +142,7 @@ export class SchedulerService {
                         channel_id: channelId,
                         publish_at: publishAt,
                         message_tmpl: messageText,
+                        media_urls: mediaUrls || [],
                         language: lang,
                         status: 'PUBLISHED',
                     },
@@ -131,6 +165,7 @@ export class SchedulerService {
                         channel_id: channelId,
                         publish_at: publishAt,
                         message_tmpl: messageText,
+                        media_urls: mediaUrls || [],
                         language: lang,
                         status: 'FAILED',
                         error_log: err.message,
@@ -149,6 +184,7 @@ export class SchedulerService {
                     channel_id: channelId,
                     publish_at: publishAt,
                     message_tmpl: messageText,
+                    media_urls: mediaUrls || [],
                     language: lang,
                     status: 'PENDING',
                 },
@@ -162,6 +198,7 @@ export class SchedulerService {
                     messageText,
                     scheduledPostId: scheduledPost.id,
                     language: lang,
+                    mediaUrls: mediaUrls || [],
                 } as PostJobPayload,
                 {
                     delay,

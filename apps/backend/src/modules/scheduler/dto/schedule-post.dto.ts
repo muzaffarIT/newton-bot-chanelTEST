@@ -22,6 +22,12 @@ export class SchedulePostDto {
     @IsString()
     messageText?: string;
 
+    /** Optional media URLs (paths on the backend or external URLs) */
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    mediaUrls?: string[];
+
     /** ISO date string for scheduled publish time. If omitted or null, publishes immediately. */
     @IsOptional()
     @IsDateString()

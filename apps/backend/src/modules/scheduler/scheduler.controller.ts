@@ -2,7 +2,12 @@ import {
     Controller, Post, Get, Patch, Delete, Body,
     Param, Query, ParseIntPipe, DefaultValuePipe,
     HttpCode, HttpStatus, HttpException, UseGuards,
+    UseInterceptors, UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import * as fs from 'fs';
 import { SchedulerService } from './scheduler.service';
 import { SchedulePostDto } from './dto/schedule-post.dto';
 import { AdminJwtAuthGuard } from '../auth/admin-jwt.guard';
@@ -53,6 +58,7 @@ export class SchedulerController {
                         channelId,
                         testId: dto.testId,
                         messageText: dto.messageText,
+                        mediaUrls: dto.mediaUrls,
                         publishAt,
                         publishNow: dto.publishNow,
                     })
@@ -62,6 +68,38 @@ export class SchedulerController {
             return { success: true, results, channelCount: channelIds.length };
         } catch (e) {
             if (e instanceof HttpException) throw e;
+            throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Upload media files for posts.
+     */
+    @Post('upload')
+    @UseInterceptors(FilesInterceptor('files', 10, {
+        storage: diskStorage({
+            destination: (req, file, cb) => {
+                const dir = './public/uploads';
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+                cb(null, dir);
+            },
+            filename: (req, file, cb) => {
+                const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+                cb(null, `${randomName}${extname(file.originalname)}`);
+            }
+        }),
+        limits: { fileSize: 50 * 1024 * 1024 } // 50MB max file size
+    }))
+    async uploadMedia(@UploadedFiles() files: any[]) {
+        try {
+            if (!files || files.length === 0) {
+                throw new HttpException('No files uploaded', HttpStatus.BAD_REQUEST);
+            }
+            const urls = files.map(f => `/uploads/${f.filename}`);
+            return { urls };
+        } catch (e) {
             throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

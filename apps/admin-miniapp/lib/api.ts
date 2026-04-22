@@ -133,12 +133,23 @@ export async function cancelScheduledPost(id: string) {
     return data
 }
 
-export async function schedulePost(channelId: string, testId: string, publishAt?: string, publishNow = false) {
+export async function uploadMedia(files: File[]) {
+    const formData = new FormData();
+    files.forEach(f => formData.append('files', f));
+    const { data } = await api.post('/api/admin/scheduler/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data.urls as string[];
+}
+
+export async function schedulePost(channelId: string, testId: string, publishAt?: string, publishNow = false, messageText?: string, mediaUrls?: string[]) {
     const { data } = await api.post('/api/admin/scheduler/schedule', {
         channelId,
         testId,
         publishAt,
         publishNow,
+        messageText,
+        mediaUrls
     })
     return data
 }

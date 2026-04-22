@@ -61,8 +61,24 @@ export class SchedulerProcessor extends WorkerHost {
                 for (const url of mediaUrls) {
                     const ext = path.extname(url).toLowerCase();
                     const isVideo = ['.mp4', '.mov', '.avi', '.mkv'].includes(ext);
-                    const isPhoto = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
-                    if (isVideo || isPhoto) {
+                    const isPhoto = ['.jpg', '.jpeg', '.png'].includes(ext);
+                    
+                    let isVisual = isVideo || isPhoto;
+
+                    if (isVisual) {
+                        try {
+                            const filePath = path.join(process.cwd(), 'public', url);
+                            const stats = fs.statSync(filePath);
+                            const sizeMB = stats.size / (1024 * 1024);
+                            if (isPhoto && sizeMB > 9.5) {
+                                isVisual = false;
+                            }
+                        } catch (e) {
+                            this.logger.warn(`Could not check file size for ${url}`);
+                        }
+                    }
+
+                    if (isVisual) {
                         visuals.push(url);
                     } else {
                         documents.push(url);

@@ -132,8 +132,8 @@ export default function SchedulePage() {
             setScheduledAt('')
             setEditPostId(null)
             loadData()
-        } catch (err) {
-            showAlert('Ошибка публикации. Проверьте настройки бота и права в канале.')
+        } catch (err: any) {
+            showAlert(err.response?.data?.message || 'Ошибка публикации. Проверьте настройки бота и права в канале.')
         } finally {
             setIsSubmitting(false)
         }

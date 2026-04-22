@@ -109,9 +109,9 @@ export class SchedulerService {
                         const filePath = path.join(process.cwd(), 'public', mediaUrls[0]);
                         const ext = path.extname(mediaUrls[0]).toLowerCase();
                         if (ext === '.mp4' || ext === '.mov') {
-                            await this.bot.telegram.sendVideo(channel.telegram_id, { source: fs.createReadStream(filePath) }, { ...extra, caption: messageText });
+                            await this.bot.telegram.sendVideo(channel.telegram_id, { source: filePath }, { ...extra, caption: messageText });
                         } else {
-                            await this.bot.telegram.sendPhoto(channel.telegram_id, { source: fs.createReadStream(filePath) }, { ...extra, caption: messageText });
+                            await this.bot.telegram.sendPhoto(channel.telegram_id, { source: filePath }, { ...extra, caption: messageText });
                         }
                     } else {
                         let finalCaption = messageText;
@@ -129,7 +129,7 @@ export class SchedulerService {
                                 const type = (ext === '.mp4' || ext === '.mov') ? 'video' : 'photo';
                                 return {
                                     type,
-                                    media: { source: fs.createReadStream(filePath) },
+                                    media: { source: filePath },
                                     ...((c === 0 && i === 0) ? { caption: finalCaption, parse_mode: 'Markdown' } : {})
                                 };
                             });

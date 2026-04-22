@@ -136,9 +136,7 @@ export async function cancelScheduledPost(id: string) {
 export async function uploadMedia(files: File[]) {
     const formData = new FormData();
     files.forEach(f => formData.append('files', f));
-    const { data } = await api.post('/api/admin/scheduler/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const { data } = await api.post('/api/admin/scheduler/upload', formData);
     return data.urls as string[];
 }
 

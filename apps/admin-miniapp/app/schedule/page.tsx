@@ -31,6 +31,14 @@ export default function SchedulePage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [editPostId, setEditPostId] = useState<string | null>(null)
 
+    const showAlert = (msg: string) => {
+        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.showAlert) {
+            (window as any).Telegram.WebApp.showAlert(msg);
+        } else {
+            alert(msg);
+        }
+    }
+
     const toggleChannel = (id: string) => {
         setSelectedChannels(prev =>
             prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
@@ -76,7 +84,7 @@ export default function SchedulePage() {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files)
             if (mediaFiles.length + newFiles.length > 50) {
-                alert('Максимум 50 файлов')
+                showAlert('Максимум 50 файлов')
                 return
             }
             setMediaFiles(prev => [...prev, ...newFiles])
@@ -88,8 +96,8 @@ export default function SchedulePage() {
     }
 
     const onSubmit = async () => {
-        if (selectedChannels.length === 0) return alert('Выберите хотя бы один канал!')
-        if (!messageText && !selectedTest && mediaFiles.length === 0) return alert('Добавьте текст, тест или медиафайлы!')
+        if (selectedChannels.length === 0) return showAlert('Выберите хотя бы один канал!')
+        if (!messageText && !selectedTest && mediaFiles.length === 0) return showAlert('Добавьте текст, тест или медиафайлы!')
         
         try {
             setIsSubmitting(true)
@@ -98,9 +106,7 @@ export default function SchedulePage() {
             if (mediaFiles.length > 0) {
                 const formData = new FormData();
                 mediaFiles.forEach(f => formData.append('files', f));
-                const res = await api.post('/api/admin/scheduler/upload', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                const res = await api.post('/api/admin/scheduler/upload', formData);
                 uploadedUrls = res.data.urls;
             }
 
@@ -127,7 +133,7 @@ export default function SchedulePage() {
             setEditPostId(null)
             loadData()
         } catch (err) {
-            alert('Ошибка публикации. Проверьте настройки бота и права в канале.')
+            showAlert('Ошибка публикации. Проверьте настройки бота и права в канале.')
         } finally {
             setIsSubmitting(false)
         }
@@ -139,7 +145,7 @@ export default function SchedulePage() {
             await cancelScheduledPost(id)
             loadData()
         } catch (e) {
-            alert('Ошибка при удалении поста')
+            showAlert('Ошибка при удалении поста')
         }
     }
 

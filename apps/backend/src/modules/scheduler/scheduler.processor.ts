@@ -55,26 +55,71 @@ export class SchedulerProcessor extends WorkerHost {
             };
 
             if (mediaUrls && mediaUrls.length > 0) {
-                if (mediaUrls.length === 1) {
-                    const filePath = path.join(process.cwd(), 'public', mediaUrls[0]);
-                    const ext = path.extname(mediaUrls[0]).toLowerCase();
-                    if (ext === '.mp4' || ext === '.mov') {
-                        await this.bot.telegram.sendVideo(channel.telegram_id, { source: filePath }, { ...extra, caption: finalCaption });
+                const visuals: string[] = [];
+                const documents: string[] = [];
+
+                for (const url of mediaUrls) {
+                    const ext = path.extname(url).toLowerCase();
+                    const isVideo = ['.mp4', '.mov', '.avi', '.mkv'].includes(ext);
+                    const isPhoto = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+                    if (isVideo || isPhoto) {
+                        visuals.push(url);
                     } else {
-                        await this.bot.telegram.sendPhoto(channel.telegram_id, { source: filePath }, { ...extra, caption: finalCaption });
+                        documents.push(url);
                     }
-                } else {
-                    const chunkSize = 10;
-                    for (let c = 0; c < mediaUrls.length; c += chunkSize) {
-                        const chunk = mediaUrls.slice(c, c + chunkSize);
+                }
+
+                let captionSent = false;
+                const getCaptionProps = () => {
+                    if (!captionSent) {
+                        captionSent = true;
+                        return { caption: finalCaption, parse_mode: 'Markdown' as const };
+                    }
+                    return {};
+                };
+
+                // Send visuals
+                for (let c = 0; c < visuals.length; c += 10) {
+                    const chunk = visuals.slice(c, c + 10);
+                    if (chunk.length === 1) {
+                        const filePath = path.join(process.cwd(), 'public', chunk[0]);
+                        const ext = path.extname(chunk[0]).toLowerCase();
+                        const isVideo = ['.mp4', '.mov', '.avi', '.mkv'].includes(ext);
+                        const extraProps = getCaptionProps();
+                        if (isVideo) {
+                            await this.bot.telegram.sendVideo(channel.telegram_id, { source: filePath }, { ...extra, ...extraProps });
+                        } else {
+                            await this.bot.telegram.sendPhoto(channel.telegram_id, { source: filePath }, { ...extra, ...extraProps });
+                        }
+                    } else {
                         const mediaGroup = chunk.map((url, i) => {
                             const filePath = path.join(process.cwd(), 'public', url);
                             const ext = path.extname(url).toLowerCase();
-                            const type = (ext === '.mp4' || ext === '.mov') ? 'video' : 'photo';
+                            const isVideo = ['.mp4', '.mov', '.avi', '.mkv'].includes(ext);
                             return {
-                                type,
+                                type: isVideo ? 'video' : 'photo',
                                 media: { source: filePath },
-                                ...((c === 0 && i === 0) ? { caption: finalCaption, parse_mode: 'Markdown' } : {})
+                                ...(i === 0 ? getCaptionProps() : {})
+                            };
+                        });
+                        await this.bot.telegram.sendMediaGroup(channel.telegram_id, mediaGroup as any);
+                    }
+                }
+
+                // Send documents
+                for (let c = 0; c < documents.length; c += 10) {
+                    const chunk = documents.slice(c, c + 10);
+                    if (chunk.length === 1) {
+                        const filePath = path.join(process.cwd(), 'public', chunk[0]);
+                        const extraProps = getCaptionProps();
+                        await this.bot.telegram.sendDocument(channel.telegram_id, { source: filePath }, { ...extra, ...extraProps });
+                    } else {
+                        const mediaGroup = chunk.map((url, i) => {
+                            const filePath = path.join(process.cwd(), 'public', url);
+                            return {
+                                type: 'document',
+                                media: { source: filePath },
+                                ...(i === 0 ? getCaptionProps() : {})
                             };
                         });
                         await this.bot.telegram.sendMediaGroup(channel.telegram_id, mediaGroup as any);

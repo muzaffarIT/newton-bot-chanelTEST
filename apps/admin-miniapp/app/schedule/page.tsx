@@ -312,7 +312,7 @@ export default function SchedulePage() {
                                 {/* Media Files */}
                                 <div>
                                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center justify-between">
-                                        <span>Фото / Видео</span>
+                                        <span>Медиа / Файлы</span>
                                         {mediaFiles.length > 0 && <span className="text-blue-400 normal-case">{mediaFiles.length} выбрано</span>}
                                     </label>
                                     
@@ -322,8 +322,10 @@ export default function SchedulePage() {
                                                 <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden bg-[#0a0a0f] border border-white/10 group">
                                                     {file.type.startsWith('image/') ? (
                                                         <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="" />
-                                                    ) : (
+                                                    ) : file.type.startsWith('video/') ? (
                                                         <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400">ВИДЕО</div>
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400 break-all p-1 text-center leading-tight">ФАЙЛ</div>
                                                     )}
                                                     <button 
                                                         onClick={() => removeFile(i)}
@@ -339,7 +341,7 @@ export default function SchedulePage() {
                                     {mediaFiles.length < 50 && (
                                         <label className="flex items-center justify-center w-full bg-[#0a0a0f] border border-white/10 border-dashed rounded-2xl py-3 cursor-pointer hover:bg-white/5 transition-colors">
                                             <span className="text-sm font-bold text-blue-400 flex items-center gap-2"><Plus size={16}/> Добавить файлы</span>
-                                            <input type="file" multiple accept="image/*,video/mp4,video/quicktime" className="hidden" onChange={handleFileChange} />
+                                            <input type="file" multiple className="hidden" onChange={handleFileChange} />
                                         </label>
                                     )}
                                 </div>

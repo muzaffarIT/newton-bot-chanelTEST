@@ -5,6 +5,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 
+// We need NodeJS.Timeout for debouncing media groups
+type Timeout = ReturnType<typeof setTimeout>;
+
 type PostContext = Scenes.SceneContext;
 
 /**
@@ -21,6 +24,7 @@ type PostContext = Scenes.SceneContext;
 @Scene('POST_SCENE')
 export class PostScene {
     private readonly logger = new Logger(PostScene.name);
+    private previewTimeouts = new Map<number, Timeout>();
 
     constructor(
         private readonly prisma: PrismaService,
@@ -76,7 +80,8 @@ export class PostScene {
 
         (ctx.scene.session as any).channels = channels;
         (ctx.scene.session as any).selectedChannelIds = [];
-        (ctx.scene.session as any).messageText = null;
+        (ctx.scene.session as any).postMessages = [];
+        (ctx.scene.session as any).fromChatId = null;
 
         await ctx.reply(
             '📢 *Публикация поста — шаг 1*\n\nВыберите каналы для рассылки (можно несколько):',
@@ -159,7 +164,7 @@ export class PostScene {
             .join(', ');
 
         await ctx.editMessageText(
-            `✅ Каналы выбраны: ${names}\n\n✍️ Теперь напишите текст поста.\n\n_Поддерживается Markdown разметка. Отправьте /cancel для отмены._`,
+            `✅ Каналы выбраны: ${names}\n\n✍️ Теперь отправьте текст, фото, видео или медиагруппу для поста.\n\n_Отправьте /cancel для отмены._`,
             { parse_mode: 'Markdown' },
         );
         await ctx.answerCbQuery();
@@ -176,9 +181,10 @@ export class PostScene {
     async onConfirmPost(@Ctx() ctx: PostContext) {
         const session = ctx.scene.session as any;
         const selectedChannelIds: string[] = session.selectedChannelIds || [];
-        const messageText: string = session.messageText;
+        const messageIds: number[] = session.postMessages || [];
+        const fromChatId: number = session.fromChatId;
 
-        if (!selectedChannelIds.length || !messageText) {
+        if (!selectedChannelIds.length || !messageIds.length || !fromChatId) {
             await ctx.answerCbQuery('Ошибка: данные сессии потеряны');
             await ctx.scene.leave();
             return;
@@ -199,15 +205,17 @@ export class PostScene {
         await Promise.allSettled(
             channels.map(async (channel) => {
                 try {
-                    await this.bot.telegram.sendMessage(channel.telegram_id, messageText, {
-                        parse_mode: 'Markdown',
-                    });
+                    await this.bot.telegram.copyMessages(
+                        channel.telegram_id,
+                        fromChatId,
+                        messageIds,
+                    );
 
                     await this.prisma.scheduledPost.create({
                         data: {
                             channel_id: channel.id,
                             publish_at: new Date(),
-                            message_tmpl: messageText,
+                            message_tmpl: `[Медиа пост: ${messageIds.length} сообщений]`,
                             language: 'ru',
                             status: 'PUBLISHED',
                         },
@@ -232,6 +240,8 @@ export class PostScene {
     @Action('pst_edit')
     async onEditPost(@Ctx() ctx: PostContext) {
         const session = ctx.scene.session as any;
+        session.postMessages = [];
+        
         const channels = (session.channels || [])
             .filter((ch: any) => (session.selectedChannelIds || []).includes(ch.id))
             .map((ch: any) => `*${ch.name}*`)
@@ -239,49 +249,77 @@ export class PostScene {
 
         await ctx.answerCbQuery();
         await ctx.editMessageText(
-            `✍️ Введите новый текст поста для ${channels}:`,
+            `✍️ Отправьте новый текст, фото или видео поста для ${channels}:`,
             { parse_mode: 'Markdown' },
         );
     }
 
-    // ─── Text Message Handler ─────────────────────────────────────────────────
+    // ─── Message Handler ──────────────────────────────────────────────────────
 
-    @On('text')
-    async onText(@Ctx() ctx: PostContext, @Message('text') text: string) {
+    @On('message')
+    async onMessage(@Ctx() ctx: PostContext) {
         const session = ctx.scene.session as any;
         const selectedChannelIds: string[] = session.selectedChannelIds || [];
 
         if (!selectedChannelIds.length) {
-            // Still waiting for channel selection, ignore text
+            // Still waiting for channel selection, ignore
             return;
         }
 
-        if (text === '/cancel' || text === 'Отмена') {
+        const message = ctx.message as any;
+        if (message.text === '/cancel' || message.text === 'Отмена') {
             await ctx.reply('❌ Публикация отменена.');
             await ctx.scene.leave();
             return;
         }
 
-        session.messageText = text;
+        if (!session.postMessages) {
+            session.postMessages = [];
+        }
+        
+        session.postMessages.push(message.message_id);
+        session.fromChatId = ctx.chat?.id;
 
+        const userId = ctx.from?.id;
+        if (userId) {
+            if (this.previewTimeouts.has(userId)) {
+                clearTimeout(this.previewTimeouts.get(userId));
+            }
+            
+            this.previewTimeouts.set(userId, setTimeout(async () => {
+                this.previewTimeouts.delete(userId);
+                try {
+                    await this.showPreview(ctx);
+                } catch (err) {
+                    this.logger.error(`Error showing preview: ${err}`);
+                }
+            }, 1500));
+        }
+    }
+
+    private async showPreview(ctx: PostContext) {
+        const session = ctx.scene.session as any;
+        const selectedChannelIds: string[] = session.selectedChannelIds || [];
+        const messages: number[] = session.postMessages || [];
         const channels = session.channels || [];
+
+        if (!messages.length) return;
+
         const channelNames = channels
             .filter((ch: any) => selectedChannelIds.includes(ch.id))
             .map((ch: any) => ch.name)
             .join(', ');
 
-        const preview = text.length > 300 ? text.slice(0, 300) + '...' : text;
-
         await ctx.reply(
             `📋 *Предпросмотр поста*\n\n` +
-            `📢 Каналы: *${channelNames}*\n\n` +
-            `---\n${preview}\n---\n\n` +
+            `📢 Каналы: *${channelNames}*\n` +
+            `📎 Прикреплено частей: *${messages.length}*\n\n` +
             `Опубликовать во всех выбранных каналах?`,
             {
                 parse_mode: 'Markdown',
                 ...Markup.inlineKeyboard([
                     [Markup.button.callback(`✅ Опубликовать (${selectedChannelIds.length} кан.)`, 'pst_confirm')],
-                    [Markup.button.callback('✏️ Изменить текст', 'pst_edit')],
+                    [Markup.button.callback('✏️ Изменить (начать заново)', 'pst_edit')],
                     [Markup.button.callback('❌ Отмена', 'pst_cancel')],
                 ]),
             },

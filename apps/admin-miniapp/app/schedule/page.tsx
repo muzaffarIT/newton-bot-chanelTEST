@@ -327,7 +327,7 @@ export default function SchedulePage() {
                                             {mediaFiles.map((file, i) => (
                                                 <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden bg-[#0a0a0f] border border-white/10 group">
                                                     {file.type.startsWith('image/') ? (
-                                                        <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="" />
+                                                        <ImagePreview file={file} />
                                                     ) : file.type.startsWith('video/') ? (
                                                         <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400">ВИДЕО</div>
                                                     ) : (
@@ -449,4 +449,17 @@ function LoaderLines() {
             ))}
         </div>
     )
+}
+
+function ImagePreview({ file }: { file: File }) {
+    const [url, setUrl] = useState('')
+    
+    useEffect(() => {
+        const objectUrl = URL.createObjectURL(file)
+        setUrl(objectUrl)
+        return () => URL.revokeObjectURL(objectUrl)
+    }, [file])
+    
+    if (!url) return <div className="w-full h-full bg-black/50" />
+    return <img src={url} className="w-full h-full object-cover" alt="" />
 }
